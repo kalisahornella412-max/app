@@ -1,0 +1,125 @@
+{
+  "project_name": "Halifax Youth Programs Platform",
+  "app_type": "hybrid_fullstack",
+  "theme": "Light",
+  "archetype": "Archetype 6 (Vibrant Play) x Archetype 4 (Swiss & High-Contrast)",
+  "design_philosophy": "Energetic Civic Neo-Brutalism. Combines the approachability and youthfulness of Vibrant Play with the structured authority and clarity of Swiss High-Contrast. It uses bold geometric shapes, vivid colors against stark white, and hard drop shadows to signify action and opportunity in Halifax.",
+  "colors": {
+    "primary": {
+      "name": "Beacon Yellow",
+      "hex": "#FFD100",
+      "usage": "Primary action buttons, prominent highlights, energetic accents."
+    },
+    "secondary": {
+      "name": "Halifax Ocean Blue",
+      "hex": "#0055A4",
+      "usage": "Secondary CTAs, major section backgrounds, trustworthy brand anchoring."
+    },
+    "accent": {
+      "name": "Signal Red",
+      "hex": "#FF3B30",
+      "usage": "Alerts, urgent deadlines for job postings, energetic badges."
+    },
+    "background": {
+      "name": "Stark White",
+      "hex": "#FFFFFF",
+      "usage": "Main application background for maximum contrast."
+    },
+    "surface": {
+      "name": "Concrete Gray",
+      "hex": "#F4F4F4",
+      "usage": "Card backgrounds, secondary panels."
+    },
+    "text_primary": {
+      "name": "Obsidian Black",
+      "hex": "#0A0A0A",
+      "usage": "Main text, headings, borders."
+    },
+    "border": {
+      "name": "Hard Black",
+      "hex": "#000000",
+      "usage": "2px solid borders for all cards, inputs, and buttons."
+    }
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Bricolage Grotesk, Cabinet Grotesk, sans-serif",
+      "weight": "font-black or font-extrabold",
+      "tracking": "tracking-tighter",
+      "usage": "All major headers (H1, H2, H3). Do not use Inter or generic sans. Keep headings large but max out at text-6xl."
+    },
+    "body": {
+      "font_family": "Epilogue, Work Sans, sans-serif",
+      "weight": "font-normal to font-medium",
+      "tracking": "tracking-normal",
+      "usage": "Paragraphs, job descriptions, UI elements."
+    },
+    "labels": {
+      "style": "uppercase text-xs tracking-[0.2em] font-bold",
+      "usage": "Overlines, tags, category badges."
+    }
+  },
+  "layout_spacing": {
+    "container": "Max-width screen-xl mx-auto px-4 sm:px-6 lg:px-8",
+    "spacing_scale": "Use generous spacing. Default section gaps should be py-16 or py-24.",
+    "grid_system": "Mode A: 'Tetris' Grid for Marketing (asymmetric, bento-style). Mode B: 'Control Room' Grid for User Dashboard and Job Board (dense, data-focused but maintaining thick borders).",
+    "borders_and_shadows": "Neo-Brutalist style. Use 2px solid black borders (border-2 border-black) and hard shadows (shadow-[4px_4px_0_0_rgba(0,0,0,1)]) for cards and buttons. On hover, translate buttons and cards to simulate pressing down (translate-x-[2px] translate-y-[2px] shadow-[2px_2px_0_0_rgba(0,0,0,1)])."
+  },
+  "components": {
+    "cards": {
+      "style": "Solid background (white, yellow, or blue), 2px solid black border, hard offset shadow. No rounded corners (rounded-none) or very slight (rounded-sm). Internal padding p-6 or p-8."
+    },
+    "buttons": {
+      "primary": "bg-[#FFD100] text-black border-2 border-black font-bold uppercase tracking-wide px-6 py-3 shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all",
+      "secondary": "bg-[#0055A4] text-white border-2 border-black font-bold px-6 py-3 shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-[#004080] transition-all"
+    },
+    "inputs": {
+      "style": "bg-white border-2 border-black p-3 focus:ring-0 focus:outline-none focus:bg-[#F4F4F4] transition-colors"
+    },
+    "navigation": {
+      "style": "Solid white background, strict bottom border (border-b-2 border-black). Sticky positioning. High contrast links."
+    },
+    "badges": {
+      "style": "bg-white border-2 border-black px-3 py-1 text-xs font-bold uppercase inline-block shadow-[2px_2px_0_0_rgba(0,0,0,1)]"
+    }
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1570902128092-950ebe50a3da?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxoYWxpZmF4JTIwbm92YSUyMHNjb3RpYXxlbnwwfHx8fDE3NzgxMjUzMDJ8MA&ixlib=rb-4.1.0&q=85",
+        "category": "hero_background",
+        "description": "Halifax waterfront across city buildings. Use in the main marketing hero section to establish local context."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1758270705172-07b53627dfcb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwzfHx5b3VuZyUyMHBlb3BsZSUyMHdvcmtpbmclMjBvbiUyMGxhcHRvcHN8ZW58MHx8fHwxNzc4MTI1MzI1fDA&ixlib=rb-4.1.0&q=85",
+        "category": "youth_workshop",
+        "description": "Diverse group of students gathered around a laptop. Use for the 'Resume Builder' or 'Workshops' promotional section."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1571391756721-0e5caf1d8f80?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIweW91dGglMjB3b3Jrc2hvcHxlbnwwfHx8fDE3NzgxMjUzMDJ8MA&ixlib=rb-4.1.0&q=85",
+        "category": "mentorship_tech",
+        "description": "Young women collaborating with smartphones. Great for the 'Programs Directory' or 'Job Board' intro."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1691346116650-4afd53ea62f5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxoYWxpZmF4JTIwbm92YSUyMHNjb3RpYXxlbnwwfHx8fDE3NzgxMjUzMDJ8MA&ixlib=rb-4.1.0&q=85",
+        "category": "city_vibe",
+        "description": "Halifax city street vibe. Good for footer background or call-to-action banner."
+      }
+    ],
+    "icons": {
+      "library": "lucide-react",
+      "style": "Use bold stroke width (2.5 or 3) to match the neo-brutalist aesthetic."
+    }
+  },
+  "instructions_to_main_agent": [
+    "CRITICAL: Do NOT use TypeScript (.tsx). Use ONLY .js and .jsx extensions for all React components.",
+    "Do NOT use placeholder images. Rely exclusively on the URLs provided in the media section of this JSON.",
+    "The UI is 'Neo-Brutalist'. This means: hard shadows, thick borders (2px), no rounded corners, and very high contrast. It is not a soft corporate SaaS.",
+    "For hover states on cards and buttons, simulate the 'press' effect: translate down and right, and reduce the shadow to 0.",
+    "Use Bricolage Grotesk or Cabinet Grotesk for Headings. If not available in standard Google Fonts, fallback to Syne or Epilogue. Add the import in index.css.",
+    "All interactive elements MUST have a data-testid attribute in kebab-case (e.g., data-testid='job-apply-button').",
+    "Use Tailwind CSS for styling. Use generic Shadcn UI components as a base but heavily override them with border-black border-2, rounded-none, and hard shadows.",
+    "Ensure there is a visible navigation bar on desktop, and a distinct footer.",
+    "When applying images, avoid dark overlay blankets; use gradient overlays or bento-box layouts where text sits outside the image."
+  ]
+}
