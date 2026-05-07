@@ -196,8 +196,8 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {jobs.map((j) => (
-              <Link
-                key={j.id} to={`/jobs/${j.id}`}
+              <a
+                key={j.id} href={j.apply_url || "#"} target="_blank" rel="noreferrer"
                 data-testid={`featured-job-${j.id}`}
                 className="bg-white text-black brutal-border brutal-shadow brutal-press p-5 flex flex-col"
               >
@@ -209,7 +209,7 @@ export default function LandingPage() {
                   <span className="font-display font-black text-lg">{j.wage}</span>
                   <span className="label-overline">{j.type}</span>
                 </div>
-              </Link>
+              </a>
             ))}
           </div>
         </div>

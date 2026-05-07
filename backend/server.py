@@ -594,13 +594,17 @@ async def on_startup():
         await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password), "role": "admin"}})
         logger.info("Updated admin password")
 
-    # Seed programs
+    # Seed programs (upsert so updates to seed_data.py propagate)
     for p in PROGRAMS:
-        existing = await db.programs.find_one({"slug": p["slug"]})
-        if not existing:
-            doc = dict(p)
-            doc["created_at"] = datetime.now(timezone.utc).isoformat()
-            await db.programs.insert_one(doc)
+        doc = dict(p)
+        await db.programs.update_one(
+            {"slug": p["slug"]},
+            {
+                "$set": doc,
+                "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()},
+            },
+            upsert=True,
+        )
     # Seed jobs (only if collection empty)
     if await db.jobs.count_documents({}) == 0:
         for j in JOBS:

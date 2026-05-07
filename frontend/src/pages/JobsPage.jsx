@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { Search, Briefcase, MapPin, Calendar } from "lucide-react";
 
@@ -53,7 +52,14 @@ export default function JobsPage() {
         <p className="font-mono-d text-sm mb-6">{filtered.length} job{filtered.length !== 1 ? "s" : ""}</p>
         <div className="grid md:grid-cols-2 gap-5">
           {filtered.map((j) => (
-            <Link key={j.id} to={`/jobs/${j.id}`} data-testid={`job-card-${j.id}`} className="brutal-border brutal-shadow brutal-press bg-white p-6 flex flex-col">
+            <a
+              key={j.id}
+              href={j.apply_url || "#"}
+              target="_blank"
+              rel="noreferrer"
+              data-testid={`job-card-${j.id}`}
+              className="brutal-border brutal-shadow brutal-press bg-white p-6 flex flex-col"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <span className="label-overline text-[#FF3B30]">{j.category}</span>
@@ -68,7 +74,10 @@ export default function JobsPage() {
                 <span className="bg-white brutal-border px-2 py-0.5 inline-flex items-center gap-1"><Briefcase size={12} strokeWidth={3} />{j.type}</span>
                 {j.deadline && <span className="bg-[#FF3B30] text-white brutal-border px-2 py-0.5 inline-flex items-center gap-1"><Calendar size={12} strokeWidth={3} />Closes {new Date(j.deadline).toLocaleDateString()}</span>}
               </div>
-            </Link>
+              <div className="mt-4 pt-3 border-t-2 border-black flex justify-between items-center">
+                <span className="font-display font-bold uppercase text-sm">View on {(j.apply_url || "").replace(/^https?:\/\/(www\.)?/i, "").split("/")[0] || "site"} →</span>
+              </div>
+            </a>
           ))}
         </div>
       </section>
