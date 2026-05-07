@@ -2,7 +2,6 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useState } from "react";
 import { Menu, X, LogOut, User } from "lucide-react";
-import AudienceToggle from "./AudienceToggle";
 
 const navItems = [
   { to: "/programs", label: "Programs" },
@@ -17,56 +16,46 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const linkClass = ({ isActive }) =>
-    `font-display text-sm font-bold uppercase tracking-wider px-3 py-2 brutal-press inline-block ${
+    `font-display text-sm font-bold uppercase tracking-wider px-2.5 py-1.5 brutal-press ${
       isActive ? "bg-[#FFD100] brutal-border brutal-shadow-sm" : "hover:bg-[#F4F4F4]"
     }`;
 
   return (
-    <header
-      data-testid="main-nav"
-      className="sticky top-0 z-50 bg-white border-b-2 border-black"
-    >
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <Link
-          to="/"
-          data-testid="brand-link"
-          className="flex items-center gap-2"
-        >
-          <div className="w-8 h-8 bg-[#FFD100] brutal-border brutal-shadow-sm flex items-center justify-center">
-            <span className="font-display font-black text-lg leading-none">H</span>
+    <header data-testid="main-nav" className="sticky top-0 z-50 bg-white border-b-2 border-black">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+        <Link to="/" data-testid="brand-link" className="flex items-center gap-2 shrink-0">
+          <div className="w-7 h-7 bg-[#FFD100] brutal-border brutal-shadow-sm flex items-center justify-center">
+            <span className="font-display font-black text-base leading-none">H</span>
           </div>
-          <span className="font-display font-black text-lg sm:text-xl tracking-tighter">
+          <span className="font-display font-black text-base sm:text-lg tracking-tighter">
             HALIFAX<span className="text-[#0055A4]">YOUTH</span>
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-0.5">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} className={linkClass} data-testid={`nav-${item.label.toLowerCase()}`}>
               {item.label}
             </NavLink>
           ))}
-          <div className="ml-3 pl-3 border-l-2 border-black/15">
-            <AudienceToggle />
-          </div>
         </nav>
 
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-2">
           {user && user !== false ? (
             <>
               <button
                 onClick={() => navigate("/dashboard")}
                 data-testid="dashboard-btn"
-                className="bg-white brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-sm uppercase flex items-center gap-2"
+                className="bg-white brutal-border brutal-shadow-sm brutal-press px-2.5 py-1.5 font-display font-bold text-xs uppercase flex items-center gap-1.5"
               >
-                <User size={16} strokeWidth={3} />
+                <User size={14} strokeWidth={3} />
                 {user.name?.split(" ")[0] || "Me"}
               </button>
               {user.role === "admin" && (
                 <button
                   onClick={() => navigate("/admin")}
                   data-testid="admin-btn"
-                  className="bg-[#FF3B30] text-white brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-sm uppercase"
+                  className="bg-[#FF3B30] text-white brutal-border brutal-shadow-sm brutal-press px-2.5 py-1.5 font-display font-bold text-xs uppercase"
                 >
                   Admin
                 </button>
@@ -74,7 +63,8 @@ export default function Navbar() {
               <button
                 onClick={async () => { await logout(); navigate("/"); }}
                 data-testid="logout-btn"
-                className="bg-black text-white brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-sm uppercase flex items-center gap-1"
+                className="bg-black text-white brutal-border brutal-shadow-sm brutal-press p-1.5"
+                aria-label="logout"
               >
                 <LogOut size={14} strokeWidth={3} />
               </button>
@@ -84,14 +74,14 @@ export default function Navbar() {
               <button
                 onClick={() => navigate("/login")}
                 data-testid="login-btn"
-                className="bg-white brutal-border brutal-shadow-sm brutal-press px-4 py-2 font-display font-bold text-sm uppercase"
+                className="bg-white brutal-border brutal-shadow-sm brutal-press px-3 py-1.5 font-display font-bold text-xs uppercase"
               >
                 Log in
               </button>
               <button
                 onClick={() => navigate("/register")}
                 data-testid="signup-btn"
-                className="bg-[#FFD100] brutal-border brutal-shadow brutal-press px-4 py-2 font-display font-bold text-sm uppercase"
+                className="bg-[#FFD100] brutal-border brutal-shadow brutal-press px-3 py-1.5 font-display font-bold text-xs uppercase"
               >
                 Sign up
               </button>
@@ -101,18 +91,17 @@ export default function Navbar() {
 
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden bg-white brutal-border brutal-shadow-sm p-2"
+          className="lg:hidden bg-white brutal-border brutal-shadow-sm p-1.5"
           data-testid="mobile-menu-toggle"
           aria-label="menu"
         >
-          {open ? <X size={20} strokeWidth={3} /> : <Menu size={20} strokeWidth={3} />}
+          {open ? <X size={18} strokeWidth={3} /> : <Menu size={18} strokeWidth={3} />}
         </button>
       </div>
 
       {open && (
-        <div className="md:hidden border-t-2 border-black bg-white" data-testid="mobile-menu">
+        <div className="lg:hidden border-t-2 border-black bg-white" data-testid="mobile-menu">
           <div className="px-4 py-4 flex flex-col gap-2">
-            <div className="pb-2"><AudienceToggle /></div>
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

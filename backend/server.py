@@ -18,7 +18,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
 
-from seed_data import PROGRAMS, JOBS, EVENTS
+from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS
 
 JWT_ALGORITHM = "HS256"
 
@@ -380,6 +380,15 @@ async def list_jobs(
     return [_serialize_doc(d) for d in docs]
 
 
+@api.get("/job-feeds")
+async def list_job_feeds(audience: Optional[str] = None):
+    filt: dict = {}
+    if audience and audience != "all":
+        filt["audiences"] = audience
+    docs = await db.job_feeds.find(filt).to_list(200)
+    return [_serialize_doc(d) for d in docs]
+
+
 @api.get("/jobs/{job_id}")
 async def get_job(job_id: str):
     doc = await db.jobs.find_one({"_id": ObjectId(job_id)})
@@ -608,7 +617,9 @@ async def on_startup():
         await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password), "role": "admin"}})
         logger.info("Updated admin password")
 
-    # Seed programs (upsert so updates to seed_data.py propagate)
+    # Seed programs (upsert + remove programs that are no longer in seed_data.py)
+    seed_program_slugs = [p["slug"] for p in PROGRAMS]
+    await db.programs.delete_many({"slug": {"$nin": seed_program_slugs}})
     for p in PROGRAMS:
         doc = dict(p)
         await db.programs.update_one(
@@ -619,11 +630,10 @@ async def on_startup():
             },
             upsert=True,
         )
-    # Seed jobs (upsert by slug). Cleanup: remove seeded jobs whose slug is no longer in JOBS.
-    job_slugs = [j["slug"] for j in JOBS]
-    await db.jobs.delete_many({"slug": {"$in": ["java-blend-barista", "volta-web-intern"]}})
-    # Also remove legacy jobs without a slug (pre-slug seeds)
+    # Seed jobs (upsert by slug + cleanup unrelated entries)
+    seed_job_slugs = [j["slug"] for j in JOBS]
     await db.jobs.delete_many({"slug": {"$exists": False}})
+    await db.jobs.delete_many({"slug": {"$nin": seed_job_slugs}})
     for j in JOBS:
         doc = dict(j)
         await db.jobs.update_one(
@@ -634,8 +644,10 @@ async def on_startup():
             },
             upsert=True,
         )
-    # Seed events (upsert by slug)
+    # Seed events (upsert by slug + cleanup)
+    seed_event_slugs = [e["slug"] for e in EVENTS]
     await db.events.delete_many({"slug": {"$exists": False}})
+    await db.events.delete_many({"slug": {"$nin": seed_event_slugs}})
     for e in EVENTS:
         doc = dict(e)
         await db.events.update_one(
@@ -644,6 +656,16 @@ async def on_startup():
                 "$set": doc,
                 "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()},
             },
+            upsert=True,
+        )
+    # Seed job_feeds (upsert by slug)
+    seed_feed_slugs = [f["slug"] for f in JOB_FEEDS]
+    await db.job_feeds.delete_many({"slug": {"$nin": seed_feed_slugs}})
+    for f in JOB_FEEDS:
+        doc = dict(f)
+        await db.job_feeds.update_one(
+            {"slug": f["slug"]},
+            {"$set": doc},
             upsert=True,
         )
     logger.info("Startup seed complete")

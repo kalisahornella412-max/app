@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "./lib/auth";
 import { AudienceProvider } from "./lib/audience";
 import Navbar from "./components/Navbar";
+import AudienceBar from "./components/AudienceBar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -27,6 +28,7 @@ function App() {
         <AudienceProvider>
           <BrowserRouter>
             <Navbar />
+            <AudienceBar />
             <main>
               <Routes>
                 <Route path="/" element={<LandingPage />} />

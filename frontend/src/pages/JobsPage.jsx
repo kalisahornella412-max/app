@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { api } from "../lib/api";
 import { useAudience } from "../lib/audience";
 import { Search, Briefcase, MapPin, Calendar } from "lucide-react";
+import JobFeeds from "../components/JobFeeds";
 
 export default function JobsPage() {
   const { audience } = useAudience();
@@ -32,8 +33,8 @@ export default function JobsPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-white/85">
             {audience === "immigrant"
-              ? "Roles open to newcomers — multilingual, settlement-aware employers and direct apply links."
-              : "Curated jobs for ages 15–30. Wages, deadlines and apply links — no fluff."}
+              ? "Roles open to newcomers + always-current feeds from Job Bank, Indeed, ISANS and more."
+              : "Live feeds from Job Bank, HRM Careers, NS Government + a few hand-picked spotlights."}
           </p>
           <div className="mt-8 grid md:grid-cols-12 gap-3">
             <div className="md:col-span-9 relative">
@@ -56,8 +57,16 @@ export default function JobsPage() {
         </div>
       </section>
 
+      <JobFeeds />
+
       <section className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <p className="font-mono-d text-sm mb-6">{filtered.length} job{filtered.length !== 1 ? "s" : ""}</p>
+        <div className="flex items-end justify-between flex-wrap gap-3 mb-6">
+          <div>
+            <span className="label-overline">/ Spotlight openings</span>
+            <h2 className="font-display font-black tracking-tighter text-3xl sm:text-4xl mt-1">Hand-picked roles.</h2>
+          </div>
+          <p className="font-mono-d text-sm">{filtered.length} spotlight{filtered.length !== 1 ? "s" : ""}</p>
+        </div>
         <div className="grid md:grid-cols-2 gap-5">
           {filtered.map((j) => (
             <a
