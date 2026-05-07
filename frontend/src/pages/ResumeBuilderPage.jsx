@@ -91,8 +91,12 @@ export default function ResumeBuilderPage() {
 
   async function aiAssist(expIdx) {
     const exp = resume.experience[expIdx];
-    if (!exp?.role) { toast.error("Add a role title first"); return; }
     setAiOpenIdx(expIdx); setAiLoading(true); setAiBullets([]);
+    if (!exp?.role) {
+      setAiLoading(false);
+      toast.error("Add a role title first to get tailored suggestions");
+      return;
+    }
     try {
       const { data } = await api.post("/resumes/ai-assist", {
         role: exp.role, company: exp.company, notes: (exp.bullets || []).filter(Boolean).join("\n"),
@@ -248,17 +252,20 @@ export default function ResumeBuilderPage() {
                     <button onClick={() => addBullet(i)} className="mt-2 text-xs font-bold uppercase underline">+ bullet</button>
 
                     {aiOpenIdx === i && (
-                      <div className="mt-3 brutal-border bg-[#FFD100] p-3">
-                        <p className="label-overline">AI suggestions</p>
-                        {aiLoading ? <p className="text-sm mt-2">Thinking…</p> : (
-                          <ul className="mt-2 space-y-2">
+                      <div className="mt-3 brutal-border bg-[#FFD100] p-3" data-testid="ai-bullet-popover">
+                        <div className="flex items-center justify-between">
+                          <p className="label-overline">AI suggestions</p>
+                          <button onClick={() => setAiOpenIdx(-1)} className="text-xs font-bold uppercase underline">Close</button>
+                        </div>
+                        {aiLoading ? <p className="text-sm mt-2" data-testid="ai-loading">Thinking…</p> : (
+                          <ul className="mt-2 space-y-2" data-testid="ai-bullet-list">
                             {aiBullets.map((b, j) => (
-                              <li key={j} className="flex gap-2 items-start">
+                              <li key={j} data-testid={`ai-bullet-${j}`} className="flex gap-2 items-start">
                                 <span className="flex-1 text-sm">{b}</span>
-                                <button onClick={() => applyBullet(b)} data-testid={`ai-apply-${i}-${j}`} className="bg-black text-white brutal-border brutal-shadow-sm px-2 py-0.5 text-xs font-bold uppercase">Add</button>
+                                <button onClick={() => applyBullet(b)} data-testid={`ai-bullet-${j}-add`} className="bg-black text-white brutal-border brutal-shadow-sm px-2 py-0.5 text-xs font-bold uppercase">Add</button>
                               </li>
                             ))}
-                            {aiBullets.length === 0 && <li className="text-sm">No suggestions returned.</li>}
+                            {aiBullets.length === 0 && <li className="text-sm" data-testid="ai-bullet-empty">No suggestions returned. Try adding a role + notes.</li>}
                           </ul>
                         )}
                       </div>

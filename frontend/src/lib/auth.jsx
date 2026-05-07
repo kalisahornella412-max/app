@@ -9,9 +9,14 @@ export function AuthProvider({ children }) {
 
   const refresh = useCallback(async () => {
     try {
-      const { data } = await api.get("/auth/me");
-      setUser(data);
-      return data;
+      // Suppress 401 console noise for anon visitors
+      const { data } = await api.get("/auth/me", { validateStatus: (s) => s < 500 });
+      if (data && data.email) {
+        setUser(data);
+        return data;
+      }
+      setUser(false);
+      return null;
     } catch {
       setUser(false);
       return null;

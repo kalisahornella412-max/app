@@ -629,6 +629,7 @@ allowed = [frontend_url, "http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed,
+    allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

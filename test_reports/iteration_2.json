@@ -1,0 +1,34 @@
+{
+  "summary": "Re-test of frontend fixes for Halifax Youth Programs platform. All 3 reported UI issues are RESOLVED and CORS regex is in place. (1) Save Program button on /programs/{id} now exposes data-testid='save-program-btn', clicks toggle text SAVE PROGRAM <-> SAVED, and Sonner toasts ('Saved to dashboard' / 'Removed from saved') render. (2) Resume Builder /resume AI assist with a role populated opens [data-testid='ai-bullet-popover'], renders 4 bullets via [data-testid='ai-bullet-{j}'], and clicking [data-testid='ai-bullet-0-add'] appends the suggestion to the experience bullets list and shows a 'Bullet added' toast. (3) AI assist clicked with no role still opens the popover, shows toast 'Add a role title first to get tailored suggestions', and renders the [data-testid='ai-bullet-empty'] marker. Backend CORSMiddleware in /app/backend/server.py line 632 has allow_origin_regex=r'https://.*\\.preview\\.emergentagent\\.com' as required. Per request, did NOT re-run pytest backend suite (was 100% last iteration).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "CORS", "issue": "allow_origin_regex confirmed present (r'https://.*\\.preview\\.emergentagent\\.com'). No issue."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "global", "issues": ["Two harmless 401 console errors still appear from /api/auth/me on initial bootstrap for anonymous visitors. The previous report noted auth.jsx was supposed to suppress this; suppression is partial — request still fires and browser logs the 401 (browsers always log non-2xx network errors at the network layer, this cannot be silenced from JS, only the .catch handler can be silent). Acceptable, just noting."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ResumeBuilderPage.aiAssist correctly sets aiOpenIdx BEFORE the role-empty early-return now, so popover reliably opens — fix verified.",
+    "ProgramDetailPage Save button is rendered in the sticky aside; the save/unsave optimistic update doesn't handle API failure (no rollback). Low priority but worth a try/catch + revert.",
+    "ResumeBuilderPage applyBullet uses aiOpenIdx implicitly; if user closes popover via setAiOpenIdx(-1) and somehow triggers applyBullet later, it would crash on next[-1]. Safe for now since Add buttons are only inside the open popover, but defensive guard would be nicer."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not re-tested this iteration (100% last iteration)", "frontend": "100% on the 3 retest cases"},
+  "test_credentials": "Admin: admin@halifaxyouth.ca / admin123. UI test user created during run via /register: uitest+{epoch}@halifaxyouth.ca / Test1234!",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All three previously-flagged UI issues are now fixed and verified on https://youth-worx-connect.preview.emergentagent.com . Public preview host visible in frontend/.env is youth-worx-connect.preview.emergentagent.com (review_request mentioned a different host — that one was stale, use the env value). CORS regex covers both. Save Program toggle, Resume AI bullet rendering + Add, and no-role error path all work end-to-end with toasts. No further action items.",
+  "rca of the issue": "Previous iteration: (a) ai bullets not rendered because aiAssist set aiOpenIdx AFTER an early `if (!exp?.role) return`, so the popover (gated by aiOpenIdx === i) never mounted. Fix: set aiOpenIdx, setAiLoading, setAiBullets first, THEN check role and toast. Verified by Playwright — popover mounts even without role. (b) Save Program had no testid. Fix: data-testid='save-program-btn' added. Verified clicking toggles SAVE PROGRAM <-> SAVED with toast feedback."
+}

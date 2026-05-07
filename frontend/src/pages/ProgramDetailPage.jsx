@@ -1,15 +1,35 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
-import { ArrowLeft, ExternalLink, MapPin, Users, Tag } from "lucide-react";
+import { useAuth } from "../lib/auth";
+import { toast } from "sonner";
+import { ArrowLeft, ExternalLink, MapPin, Users, Tag, Bookmark, BookmarkCheck } from "lucide-react";
 
 export default function ProgramDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [p, setP] = useState(null);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     api.get(`/programs/${id}`).then((r) => setP(r.data)).catch((e) => setError("Program not found"));
   }, [id]);
+  useEffect(() => {
+    if (!p || !user || user === false) return;
+    api.get("/me/saved-programs").then((r) => setSaved(r.data.some((x) => x.id === p.id))).catch(() => {});
+  }, [p, user]);
+
+  async function toggleSave() {
+    if (!user || user === false) { toast.error("Sign in to save programs"); return; }
+    if (!p) return;
+    if (saved) {
+      await api.delete(`/saved/programs/${p.id}`);
+      setSaved(false); toast.success("Removed from saved");
+    } else {
+      await api.post(`/saved/programs/${p.id}`);
+      setSaved(true); toast.success("Saved to dashboard");
+    }
+  }
 
   if (error) return <div className="p-12 text-center font-display font-bold">{error}</div>;
   if (!p) return <div className="p-12 text-center font-display font-bold uppercase tracking-widest">Loading…</div>;
@@ -69,6 +89,13 @@ export default function ProgramDetailPage() {
                   Apply on partner site <ExternalLink size={16} strokeWidth={3} />
                 </a>
               )}
+              <button
+                onClick={toggleSave}
+                data-testid="save-program-btn"
+                className="mt-3 w-full bg-white brutal-border brutal-shadow-sm brutal-press px-6 py-3 font-display font-bold uppercase tracking-wide flex items-center justify-center gap-2"
+              >
+                {saved ? (<><BookmarkCheck size={16} strokeWidth={3} />Saved</>) : (<><Bookmark size={16} strokeWidth={3} />Save program</>)}
+              </button>
             </div>
           </aside>
         </div>
