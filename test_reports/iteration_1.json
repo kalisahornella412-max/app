@@ -1,0 +1,51 @@
+{
+  "summary": "Full backend + frontend test of Halifax Youth Programs MVP. 29/29 pytest cases pass (100%) after fixing one tz-naive datetime comparison bug in /api/auth/login lockout. Frontend flows verified: landing, register, login, dashboard, programs list/detail, jobs, events + RSVP, resume builder save, admin login + admin page render. AI resume-assist works at API level but the UI did not visibly render returned bullets for the user during testing.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/login (lockout path)", "issue": "FIXED: was returning 500 instead of 429 because rec.locked_until was tz-naive but compared against tz-aware datetime. Patched in server.py to coerce tzinfo=UTC."},
+      {"endpoint": "backend/.env FRONTEND_URL", "issue": "FRONTEND_URL points to old preview host '47abc6db-...preview.emergentagent.com' but the actual public URL is 'youth-worx-connect.preview.emergentagent.com'. Currently cookies still flow because frontend & /api share the same origin via Kubernetes ingress, but CORSMiddleware allow_origins is misconfigured. If anyone calls the API cross-origin (e.g. mobile, embedded widgets), credentialed requests will be blocked. Update FRONTEND_URL to match actual REACT_APP_BACKEND_URL host."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProgramDetailPage", "issue": "Save Program button has no data-testid; could not be triggered by automated test by stable selector. Add data-testid='save-program-btn'.", "selector": "save program button on /programs/{id}", "priority": "MEDIUM"},
+      {"component": "ResumeBuilderPage AI assist", "issue": "After clicking [data-testid='ai-assist-0'], no bullet-suggestion list appears in the DOM with discoverable testids. Backend /api/resumes/ai-assist returns bullets correctly (verified via pytest), so this is a UI rendering/state issue OR the suggestions render in a popover without testids. Recommend adding data-testid='ai-bullet-{i}-add' to each suggestion's Add button and 'ai-bullet-popover' to the container so the AI flow is testable and visible.", "selector": "[data-testid='ai-assist-0']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Resume builder AI assist", "issue": "Bullets are returned by API but not surfaced as clickable Add buttons in DOM during the test session.", "affected_selectors": ["[data-testid='ai-assist-0']", "[data-testid^='ai-bullet']"]}
+    ],
+    "design_issues": [
+      {"screen": "global", "issues": ["Two harmless 401 console errors on every page load from /api/auth/me when anonymous (AuthProvider bootstraps). Consider treating this as expected and suppressing 401 logging, or use a HEAD/quiet flag, so the dev console is clean."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Update backend/.env FRONTEND_URL to match REACT_APP_BACKEND_URL host (youth-worx-connect.preview.emergentagent.com) so CORS allow_origins lines up with reality.",
+    "Add data-testid='save-program-btn' to the Save Program button on ProgramDetailPage.",
+    "Verify Resume Builder AI assist actually renders the returned bullets to the user (with Add buttons) and add data-testids ai-bullet-{i} / ai-bullet-{i}-add. Currently the API works but the user sees nothing on click.",
+    "(Optional) Silence the noisy /api/auth/me 401 in console for anonymous visitors."
+  ],
+  "critical_code_review_comments": [
+    "server.py login lockout used naive datetime from Mongo against aware datetime.now(timezone.utc) -> TypeError -> 500. Fixed.",
+    "server.py FRONTEND_URL fallback should not be hardcoded to localhost in prod; rely on env or fail loudly when missing. Acceptable for local dev though.",
+    "_serialize_doc mutates the dict in place after dict(d); fine but be careful with nested ObjectIds (none in current schema).",
+    "ai-assist endpoint catches LLM error and returns 502, good. Consider logging the prompt+response length only (not contents) for privacy.",
+    "No rate-limiting on resumes/ai-assist - could be abused to drain LLM credits. Add per-user throttle in a follow-up.",
+    "frontend lib/auth.jsx logs 401 on bootstrap in console - consider catching expected anon 401 silently."
+  ],
+  "updated_files": [
+    "/app/backend/server.py (timezone-aware fix in /api/auth/login lockout check)",
+    "/app/backend/tests/backend_test.py (new pytest regression suite, 29 tests)"
+  ],
+  "success_rate": {"backend": "100% (29/29 pytest)", "frontend": "~85% (landing, auth, programs, jobs, events, RSVP, resume save, admin all work; save-program testid missing; AI bullets not rendered)"},
+  "test_credentials": "Admin: admin@halifaxyouth.ca / admin123. Test user created during run: uitest+1778126443@halifaxyouth.ca / Test1234!",
+  "seed_data_creation": "None new. Backend seeds 8 programs, 6 jobs, 4 events, 1 admin on startup. Confirmed via /api/stats.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "backend_test.py is the canonical regression suite. Run with REACT_APP_BACKEND_URL exported (read from frontend/.env). The brute-force lockout test creates an account 'locktest+{ts}@halifaxyouth.ca'. AI assist test takes ~10s. After main agent fixes the AI bullet UI rendering and adds save-program testid, retest /resume AI flow and /programs/{id} save. CORS FRONTEND_URL mismatch in backend/.env is non-blocking for browser usage today (same-origin) but worth fixing.",
+  "rca of the issue": "TestAuth::test_brute_force_lockout failed with 500 instead of 429. Root cause: pymongo deserializes BSON dates without tzinfo; comparing rec['locked_until'] (naive) > datetime.now(timezone.utc) (aware) raises TypeError, caught by FastAPI as 500. Fix: replace tzinfo=timezone.utc on the naive value before comparison. After fix, lockout returns 429 after the 5th invalid login attempt as designed."
+}
