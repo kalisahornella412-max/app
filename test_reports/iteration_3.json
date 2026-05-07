@@ -1,0 +1,45 @@
+{
+  "summary": "Audience-segmentation feature, YouthWorx URL fix, and bad-jobs removal verified end-to-end. 10/10 backend pytest cases pass and all 10 frontend behaviours from the review request pass via Playwright on the live preview URL.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "global", "issues": ["Harmless 401s from /api/auth/me bootstrap on anonymous visits — same as iteration 2, browser network-layer log only, cannot be silenced from JS. Acceptable."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_audience_filter.py",
+    "/app/test_reports/pytest/audience_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py list_programs/jobs/events use exact-match `filt['audiences'] = audience` — this works because Mongo matches a scalar against array elements. Behaviour is correct; no change needed.",
+    "Startup performs delete_many({slug:{$exists:false}}) on jobs/events every boot. Idempotent and intended for cleanup of legacy seeds, but worth a comment in the code that this is the explicit cleanup hook for future seeds.",
+    "audience.jsx default = 'youth' with try/catch around localStorage — safe. data-audience attribute set on <html> enables CSS theming hooks if ever needed."
+  ],
+  "updated_files": ["/app/backend/tests/test_audience_filter.py"],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% (all review-request cases verified)"},
+  "test_credentials": "Admin: admin@halifaxyouth.ca / admin123 (not exercised this iteration; no auth-protected behaviour in review request).",
+  "seed_data_creation": "None — all data already seeded by backend startup hook (programs=21, jobs=7, events=6 confirmed via /api/stats).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Public preview host: https://youth-worx-connect.preview.emergentagent.com (REACT_APP_BACKEND_URL). Audience values are exactly 'youth' or 'immigrant' and are stored in localStorage key 'hyh_audience'. Backend ?audience= query maps directly to Mongo array element match. New regression test file at /app/backend/tests/test_audience_filter.py covers stats counts, audience filter for programs/jobs/events, YouthWorx apply_url, and removed-employer assertions.",
+  "verified_review_request_items": {
+    "BACKEND_programs_audience_youth": "PASS",
+    "BACKEND_programs_audience_immigrant": "PASS — pure-youth (LEAD, YouthWorx) excluded; ISANS/YREACH/Halifax Refugee Clinic included; dual-tagged programs appear in both",
+    "BACKEND_jobs_immigrant_excludes_legacy_includes_required": "PASS — Java Blend & Volta absent; Language Programs Assistant, Translator, Youth Newcomer Program Assistant present",
+    "BACKEND_events_immigrant": "PASS — Newcomer Resume & Interview Clinic + Newcomer Welcome Night present; LEAD Civic Engagement Mixer absent",
+    "BACKEND_youthworx_apply_url": "PASS — https://www.halifax.ca/parks-recreation/halifax-youth (no hopeblooms.ca)",
+    "BACKEND_stats_counts": "PASS — programs=21, jobs=7, events=6",
+    "FRONTEND_navbar_toggle_and_localstorage": "PASS — data-testid='audience-toggle' + 'audience-youth' + 'audience-immigrant' present; clicking Newcomers sets aria-pressed='true' and writes 'immigrant' to localStorage 'hyh_audience'",
+    "FRONTEND_programs_page_immigrant": "PASS — heading 'Programs Directory.' renders, subtitle mentions settlement/newcomer, ISANS+YREACH+Halifax Refugee Clinic visible, LEAD hidden",
+    "FRONTEND_jobs_external_link": "PASS — 6 job <a target=_blank> links; first href = https://ymcahfx.ca/careers; no internal /jobs/{id} routes",
+    "FRONTEND_audience_persists_reload": "PASS — after reload, immigrant remains aria-pressed",
+    "FRONTEND_landing_hero_adapts": "PASS — 'Halifax, made navigable. For newcomers.' visible when audience=immigrant"
+  },
+  "rca of the issue": "No issues found. Implementation matches the review request exactly: backend ?audience= filter uses Mongo array-element match (correct semantics for dual-tagged docs), startup explicitly deletes java-blend-barista + volta-web-intern slugs and any legacy slug-less jobs/events, YouthWorx seed updated to halifax.ca URL with upsert by slug, JobsPage cards now render as external <a target=_blank>, and AudienceProvider persists 'hyh_audience' in localStorage with safe fallback to 'youth'."
+}

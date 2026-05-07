@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useState } from "react";
 import { Menu, X, LogOut, User } from "lucide-react";
+import AudienceToggle from "./AudienceToggle";
 
 const navItems = [
   { to: "/programs", label: "Programs" },
@@ -45,6 +46,9 @@ export default function Navbar() {
               {item.label}
             </NavLink>
           ))}
+          <div className="ml-3 pl-3 border-l-2 border-black/15">
+            <AudienceToggle />
+          </div>
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
@@ -108,6 +112,7 @@ export default function Navbar() {
       {open && (
         <div className="md:hidden border-t-2 border-black bg-white" data-testid="mobile-menu">
           <div className="px-4 py-4 flex flex-col gap-2">
+            <div className="pb-2"><AudienceToggle /></div>
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

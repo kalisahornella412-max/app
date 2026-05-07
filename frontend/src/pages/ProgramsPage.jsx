@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { Search, Bookmark, BookmarkCheck } from "lucide-react";
 import { useAuth } from "../lib/auth";
+import { useAudience } from "../lib/audience";
 import { toast } from "sonner";
 
 export default function ProgramsPage() {
   const { user } = useAuth();
+  const { audience } = useAudience();
   const [programs, setPrograms] = useState([]);
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
@@ -14,8 +16,8 @@ export default function ProgramsPage() {
   const [savedIds, setSavedIds] = useState(new Set());
 
   useEffect(() => {
-    api.get("/programs").then((r) => setPrograms(r.data));
-  }, []);
+    api.get(`/programs?audience=${audience}`).then((r) => setPrograms(r.data));
+  }, [audience]);
 
   useEffect(() => {
     if (user && user !== false) {
@@ -54,9 +56,13 @@ export default function ProgramsPage() {
     <div data-testid="programs-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#F4F4F4]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <span className="label-overline">/ Programs</span>
+          <span className="label-overline">/ Programs · {audience === "immigrant" ? "Newcomers" : "Youth"}</span>
           <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">Programs Directory.</h1>
-          <p className="mt-3 max-w-2xl text-black/75">Mentorship, paid training, leadership, entrepreneurship, wellness — built for Halifax youth.</p>
+          <p className="mt-3 max-w-2xl text-black/75">
+            {audience === "immigrant"
+              ? "Settlement, employment readiness, language support, mentorship — programs built for newcomers in Halifax."
+              : "Mentorship, paid training, leadership, entrepreneurship, wellness — built for Halifax youth."}
+          </p>
 
           <div className="mt-8 grid md:grid-cols-12 gap-3">
             <div className="md:col-span-6 relative">

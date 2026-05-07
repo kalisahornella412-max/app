@@ -1,23 +1,28 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { useAudience } from "../lib/audience";
 import { ArrowRight, Briefcase, FileText, Calendar, Sparkles, MapPin } from "lucide-react";
 
 const partners = [
   "YOUTHWORX", "BBI INITIATIVE", "LEAD HRM", "YMCA HALIFAX", "PHOENIX YOUTH",
-  "ISANS", "CANADA SUMMER JOBS", "HOPE BLOOMS", "VOLTA LABS",
+  "ISANS", "YREACH NEWCOMER", "YWCA READY 4 LAUNCH", "JOB JUNCTION",
+  "NS WORKS", "CANADA SUMMER JOBS", "FSWEP",
 ];
 
 export default function LandingPage() {
+  const { audience } = useAudience();
   const [programs, setPrograms] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState({ programs: 0, jobs: 0, events: 0 });
 
   useEffect(() => {
-    api.get("/programs?featured=true").then((r) => setPrograms(r.data.slice(0, 4))).catch(() => {});
-    api.get("/jobs").then((r) => setJobs(r.data.slice(0, 3))).catch(() => {});
+    api.get(`/programs?featured=true&audience=${audience}`).then((r) => setPrograms(r.data.slice(0, 4))).catch(() => {});
+    api.get(`/jobs?audience=${audience}`).then((r) => setJobs(r.data.slice(0, 3))).catch(() => {});
     api.get("/stats").then((r) => setStats(r.data)).catch(() => {});
-  }, []);
+  }, [audience]);
+
+  const isNewcomer = audience === "immigrant";
 
   return (
     <div data-testid="landing-page" className="bg-white">
@@ -29,15 +34,19 @@ export default function LandingPage() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 bg-[#FFD100] brutal-border brutal-shadow-sm px-3 py-1 mb-6">
                 <span className="w-2 h-2 bg-[#FF3B30] rounded-full animate-pulse" />
-                <span className="label-overline">Built in K'jipuktuk · Halifax</span>
+                <span className="label-overline">{isNewcomer ? "For Newcomers · Halifax" : "Built in K'jipuktuk · Halifax"}</span>
               </div>
               <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl lg:text-7xl leading-[0.95]">
-                Every Halifax youth program.<br />
-                <span className="bg-[#FFD100] px-2 inline-block brutal-border brutal-shadow">One door.</span>
+                {isNewcomer ? (
+                  <>Halifax, made navigable.<br /><span className="bg-[#FFD100] px-2 inline-block brutal-border brutal-shadow">For newcomers.</span></>
+                ) : (
+                  <>Every Halifax youth program.<br /><span className="bg-[#FFD100] px-2 inline-block brutal-border brutal-shadow">One door.</span></>
+                )}
               </h1>
               <p className="mt-6 text-lg max-w-xl text-black/75 leading-relaxed">
-                Find paid summer jobs, mentorship, free workshops, and the people behind YouthWorx, BBI,
-                LEAD, YMCA & more. Plus an AI-assisted resume builder so you actually get the job.
+                {isNewcomer
+                  ? "Settlement, language support, employment readiness, newcomer-friendly jobs and resume help — connected to ISANS, YREACH, YMCA, YWCA and more."
+                  : "Find paid summer jobs, mentorship, free workshops, and the people behind YouthWorx, BBI, LEAD, YMCA & more. Plus an AI-assisted resume builder so you actually get the job."}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link

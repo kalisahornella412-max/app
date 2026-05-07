@@ -132,6 +132,7 @@ class ProgramIn(BaseModel):
     name: str
     organization: str
     category: str
+    audiences: List[str] = ["youth"]
     age_min: int = 12
     age_max: int = 30
     neighbourhood: str = "All HRM"
@@ -144,9 +145,11 @@ class ProgramIn(BaseModel):
 
 
 class JobIn(BaseModel):
+    slug: Optional[str] = None
     title: str
     employer: str
     category: str
+    audiences: List[str] = ["youth"]
     location: str
     wage: Optional[str] = None
     type: Optional[str] = None
@@ -159,9 +162,11 @@ class JobIn(BaseModel):
 
 
 class EventIn(BaseModel):
+    slug: Optional[str] = None
     title: str
     host: str
     category: str
+    audiences: List[str] = ["youth"]
     location: str
     starts_at: str
     duration_minutes: int = 60
@@ -289,6 +294,7 @@ async def list_programs(
     neighbourhood: Optional[str] = None,
     age: Optional[int] = None,
     featured: Optional[bool] = None,
+    audience: Optional[str] = None,
 ):
     filt: dict = {}
     if q:
@@ -307,6 +313,8 @@ async def list_programs(
         filt["age_max"] = {"$gte": age}
     if featured:
         filt["is_featured"] = True
+    if audience and audience != "all":
+        filt["audiences"] = audience
     docs = await db.programs.find(filt).to_list(500)
     return [_serialize_doc(d) for d in docs]
 
@@ -353,6 +361,7 @@ async def list_jobs(
     q: Optional[str] = None,
     category: Optional[str] = None,
     location: Optional[str] = None,
+    audience: Optional[str] = None,
 ):
     filt: dict = {}
     if q:
@@ -365,6 +374,8 @@ async def list_jobs(
         filt["category"] = category
     if location:
         filt["location"] = {"$regex": location, "$options": "i"}
+    if audience and audience != "all":
+        filt["audiences"] = audience
     docs = await db.jobs.find(filt).to_list(500)
     return [_serialize_doc(d) for d in docs]
 
@@ -394,8 +405,11 @@ async def delete_job(job_id: str, _admin: dict = Depends(require_admin)):
 
 # ---------- Events ----------
 @api.get("/events")
-async def list_events():
-    docs = await db.events.find({}).sort("starts_at", 1).to_list(200)
+async def list_events(audience: Optional[str] = None):
+    filt: dict = {}
+    if audience and audience != "all":
+        filt["audiences"] = audience
+    docs = await db.events.find(filt).sort("starts_at", 1).to_list(200)
     return [_serialize_doc(d) for d in docs]
 
 
@@ -605,18 +619,33 @@ async def on_startup():
             },
             upsert=True,
         )
-    # Seed jobs (only if collection empty)
-    if await db.jobs.count_documents({}) == 0:
-        for j in JOBS:
-            doc = dict(j)
-            doc["created_at"] = datetime.now(timezone.utc).isoformat()
-            await db.jobs.insert_one(doc)
-    # Seed events (only if empty)
-    if await db.events.count_documents({}) == 0:
-        for e in EVENTS:
-            doc = dict(e)
-            doc["created_at"] = datetime.now(timezone.utc).isoformat()
-            await db.events.insert_one(doc)
+    # Seed jobs (upsert by slug). Cleanup: remove seeded jobs whose slug is no longer in JOBS.
+    job_slugs = [j["slug"] for j in JOBS]
+    await db.jobs.delete_many({"slug": {"$in": ["java-blend-barista", "volta-web-intern"]}})
+    # Also remove legacy jobs without a slug (pre-slug seeds)
+    await db.jobs.delete_many({"slug": {"$exists": False}})
+    for j in JOBS:
+        doc = dict(j)
+        await db.jobs.update_one(
+            {"slug": j["slug"]},
+            {
+                "$set": doc,
+                "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()},
+            },
+            upsert=True,
+        )
+    # Seed events (upsert by slug)
+    await db.events.delete_many({"slug": {"$exists": False}})
+    for e in EVENTS:
+        doc = dict(e)
+        await db.events.update_one(
+            {"slug": e["slug"]},
+            {
+                "$set": doc,
+                "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()},
+            },
+            upsert=True,
+        )
     logger.info("Startup seed complete")
 
 

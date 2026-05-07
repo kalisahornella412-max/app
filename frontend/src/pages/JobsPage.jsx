@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import { api } from "../lib/api";
+import { useAudience } from "../lib/audience";
 import { Search, Briefcase, MapPin, Calendar } from "lucide-react";
 
 export default function JobsPage() {
+  const { audience } = useAudience();
   const [jobs, setJobs] = useState([]);
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
 
-  useEffect(() => { api.get("/jobs").then((r) => setJobs(r.data)); }, []);
+  useEffect(() => { api.get(`/jobs?audience=${audience}`).then((r) => setJobs(r.data)); }, [audience]);
 
   const categories = useMemo(() => ["all", ...new Set(jobs.map((j) => j.category))], [jobs]);
 
@@ -24,9 +26,15 @@ export default function JobsPage() {
     <div data-testid="jobs-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#0055A4] text-white">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <span className="label-overline text-[#FFD100]">/ Jobs</span>
-          <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">Halifax Job Board.</h1>
-          <p className="mt-3 max-w-2xl text-white/85">Curated jobs for ages 15–30. Wages, deadlines and apply links — no fluff.</p>
+          <span className="label-overline text-[#FFD100]">/ Jobs · {audience === "immigrant" ? "Newcomers" : "Youth"}</span>
+          <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">
+            {audience === "immigrant" ? "Newcomer-friendly Jobs." : "Halifax Job Board."}
+          </h1>
+          <p className="mt-3 max-w-2xl text-white/85">
+            {audience === "immigrant"
+              ? "Roles open to newcomers — multilingual, settlement-aware employers and direct apply links."
+              : "Curated jobs for ages 15–30. Wages, deadlines and apply links — no fluff."}
+          </p>
           <div className="mt-8 grid md:grid-cols-12 gap-3">
             <div className="md:col-span-9 relative">
               <Search size={18} strokeWidth={3} className="absolute left-3 top-1/2 -translate-y-1/2 text-black pointer-events-none" />

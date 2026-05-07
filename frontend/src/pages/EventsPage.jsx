@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useAudience } from "../lib/audience";
 import { Calendar as CalIcon, MapPin, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EventsPage() {
   const { user } = useAuth();
+  const { audience } = useAudience();
   const [events, setEvents] = useState([]);
   const [rsvps, setRsvps] = useState(new Set());
 
   useEffect(() => {
-    api.get("/events").then((r) => setEvents(r.data));
-  }, []);
+    api.get(`/events?audience=${audience}`).then((r) => setEvents(r.data));
+  }, [audience]);
 
   useEffect(() => {
     if (user && user !== false) {
@@ -36,9 +38,15 @@ export default function EventsPage() {
     <div data-testid="events-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#FFD100]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <span className="label-overline">/ Events</span>
-          <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">Workshops & Events.</h1>
-          <p className="mt-3 max-w-xl text-black/80">Free skill-ups, pitch nights, job fairs and mixers — RSVP to save your spot.</p>
+          <span className="label-overline">/ Events · {audience === "immigrant" ? "Newcomers" : "Youth"}</span>
+          <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">
+            {audience === "immigrant" ? "Workshops for newcomers." : "Workshops & Events."}
+          </h1>
+          <p className="mt-3 max-w-xl text-black/80">
+            {audience === "immigrant"
+              ? "Resume clinics, welcome nights, and Canadian-style interview prep with multilingual support."
+              : "Free skill-ups, pitch nights, job fairs and mixers — RSVP to save your spot."}
+          </p>
         </div>
       </section>
 
