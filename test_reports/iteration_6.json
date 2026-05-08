@@ -1,0 +1,53 @@
+{
+  "summary": "Iteration 6 backend (Job Bank live scraper) is rock solid — 5/5 pytest tests pass. CRITICAL frontend bug: <LiveJobs/> is imported in JobsPage.jsx but never rendered, so the entire live-jobs-section / refresh button / live-job-* cards are completely absent from /jobs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "JobsPage",
+        "issue": "LiveJobs component is imported (line 6) but never rendered. The page contains <JobFeeds/> and the spotlight section, but no <LiveJobs/>. As a result data-testid='live-jobs-section', 'live-jobs-refresh', and 'live-job-*' cards are NOT in the DOM. Verified via Playwright on https://youth-worx-connect.preview.emergentagent.com/jobs.",
+        "selector": "[data-testid='live-jobs-section']",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "JobsPage",
+        "issue": "Even when LiveJobs is rendered, the spec requires it to appear BEFORE <JobFeeds/>. Current import order suggests author intent matched spec, but render call is missing entirely. Add <LiveJobs/> immediately above <JobFeeds/> at line 61.",
+        "selector": "JobsPage.jsx line 61",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration6.py",
+    "/app/test_reports/pytest/iteration6_results.xml"
+  ],
+  "action_items": [
+    "Add <LiveJobs /> JSX to /app/frontend/src/pages/JobsPage.jsx immediately above the existing <JobFeeds /> at line 61 (the import on line 6 already exists).",
+    "After fix, retest: visit /jobs, confirm live-jobs-section is present, contains live-job-* cards linking to https://www.jobbank.gc.ca/jobsearch/jobposting/..., refresh button spins, and audience switch (Youth ↔ Newcomers) re-fetches /api/live-jobs with different fyt=1 query."
+  ],
+  "critical_code_review_comments": [
+    "JobsPage.jsx imports LiveJobs but never uses it — likely a missed paste during the iteration. Trivial 1-line fix.",
+    "jobbank_scraper.py: cache key currently uses audience only; if upstream HTML structure changes, caller still gets serialized stale data — acceptable given fallback behaviour, but log a warning when serving stale on parse failure (already implemented, good).",
+    "server.py /api/live-jobs maps audience='immigrant' -> fetch_aud='all'. Spec says newcomers benefit from broader feed; this is intentional and documented inline. OK.",
+    "LiveJobs.jsx: data-testid uses raw j.id which can contain special chars from Job Bank article ids (e.g. '43234567'); current ids are numeric so selector ^='live-job-' works. Fine.",
+    "CORS allow_origin_regex matches *.preview.emergentagent.com — correct for the active REACT_APP_BACKEND_URL."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration6.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "0% — live-jobs feature entirely missing from rendered DOM"
+  },
+  "test_credentials": "n/a (live-jobs is public, no auth required)",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend /api/live-jobs verified end-to-end: real HRM jobs returned (Halifax/Dartmouth/Bedford/Sackville/etc.), all locations contain '(NS)' + HRM community, no Antigonish/Sydney/Truro etc., apply_url starts with https://www.jobbank.gc.ca/jobsearch/jobposting/, source='Job Bank Canada', audience=youth applies fyt=1 and second call returns cached:true within TTL, limit=5 caps results. Cache TTL 30 min in-memory — avoid hammering. Frontend bug is 1-line fix in JobsPage.jsx; once added, simply re-verify the four UI bullets in the request.",
+  "rca of the issue": "JobsPage.jsx contains `import LiveJobs from '../components/LiveJobs';` on line 6 but the JSX tree (lines 27-104) only renders <JobFeeds /> on line 61 — the developer forgot to add the matching <LiveJobs /> JSX. Reproduction: open /jobs, run document.querySelector(\"[data-testid='live-jobs-section']\") in console -> null. Mitigation: insert `<LiveJobs />` on a new line directly before `<JobFeeds />` at line 61."
+}

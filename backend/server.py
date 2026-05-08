@@ -18,7 +18,8 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
 
-from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS
+from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS
+from jobbank_scraper import fetch_live_jobs
 
 JWT_ALGORITHM = "HS256"
 
@@ -168,8 +169,8 @@ class EventIn(BaseModel):
     category: str
     audiences: List[str] = ["youth"]
     location: str
-    starts_at: str
-    duration_minutes: int = 60
+    starts_at: str = ""
+    host_url: Optional[str] = None
     description: str
     image_url: Optional[str] = None
 
@@ -389,6 +390,24 @@ async def list_job_feeds(audience: Optional[str] = None):
     return [_serialize_doc(d) for d in docs]
 
 
+@api.get("/event-feeds")
+async def list_event_feeds(audience: Optional[str] = None):
+    filt: dict = {}
+    if audience and audience != "all":
+        filt["audiences"] = audience
+    docs = await db.event_feeds.find(filt).to_list(200)
+    return [_serialize_doc(d) for d in docs]
+
+
+@api.get("/live-jobs")
+async def list_live_jobs(audience: Optional[str] = None, limit: int = 24):
+    """Live Halifax jobs scraped from Job Bank Canada (cached 30 min)."""
+    aud = audience if audience in ("youth", "immigrant") else "all"
+    # Newcomers benefit from the broader feed (no youth flag), so 'immigrant' uses 'all'.
+    fetch_aud = "youth" if aud == "youth" else "all"
+    return await fetch_live_jobs(audience=fetch_aud, limit=limit)
+
+
 @api.get("/jobs/{job_id}")
 async def get_job(job_id: str):
     doc = await db.jobs.find_one({"_id": ObjectId(job_id)})
@@ -418,7 +437,7 @@ async def list_events(audience: Optional[str] = None):
     filt: dict = {}
     if audience and audience != "all":
         filt["audiences"] = audience
-    docs = await db.events.find(filt).sort("starts_at", 1).to_list(200)
+    docs = await db.events.find(filt).to_list(200)
     return [_serialize_doc(d) for d in docs]
 
 
@@ -664,6 +683,16 @@ async def on_startup():
     for f in JOB_FEEDS:
         doc = dict(f)
         await db.job_feeds.update_one(
+            {"slug": f["slug"]},
+            {"$set": doc},
+            upsert=True,
+        )
+    # Seed event_feeds (upsert by slug)
+    seed_efeed_slugs = [f["slug"] for f in EVENT_FEEDS]
+    await db.event_feeds.delete_many({"slug": {"$nin": seed_efeed_slugs}})
+    for f in EVENT_FEEDS:
+        doc = dict(f)
+        await db.event_feeds.update_one(
             {"slug": f["slug"]},
             {"$set": doc},
             upsert=True,

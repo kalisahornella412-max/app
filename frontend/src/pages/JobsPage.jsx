@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import { useAudience } from "../lib/audience";
 import { Search, Briefcase, MapPin, Calendar } from "lucide-react";
 import JobFeeds from "../components/JobFeeds";
+import LiveJobs from "../components/LiveJobs";
 
 export default function JobsPage() {
   const { audience } = useAudience();
