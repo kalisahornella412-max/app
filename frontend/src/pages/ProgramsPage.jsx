@@ -125,9 +125,13 @@ export default function ProgramsPage() {
                   ))}
                 </div>
                 <div className="mt-4 pt-3 border-t-2 border-black flex justify-between items-center">
-                  <Link to={`/programs/${p.id}`} className="font-display font-bold uppercase text-sm hover:bg-[#FFD100] px-2 py-1">Details →</Link>
+                  {p.apply_url ? (
+                    <a href={p.apply_url} target="_blank" rel="noreferrer" data-testid={`details-${p.slug}`} className="font-display font-bold uppercase text-sm hover:bg-[#FFD100] px-2 py-1">Details →</a>
+                  ) : (
+                    <Link to={`/programs/${p.id}`} className="font-display font-bold uppercase text-sm hover:bg-[#FFD100] px-2 py-1">Details →</Link>
+                  )}
                   {p.apply_url && (
-                    <a href={p.apply_url} target="_blank" rel="noreferrer" className="bg-[#0055A4] text-white brutal-border brutal-shadow-sm brutal-press px-3 py-1 font-bold text-xs uppercase">
+                    <a href={p.apply_url} target="_blank" rel="noreferrer" data-testid={`apply-${p.slug}`} className="bg-[#0055A4] text-white brutal-border brutal-shadow-sm brutal-press px-3 py-1 font-bold text-xs uppercase">
                       Apply
                     </a>
                   )}

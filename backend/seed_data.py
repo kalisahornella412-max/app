@@ -20,7 +20,7 @@ PROGRAMS = [
         "short_description": "Structured job-skills training with one-on-one resume support, WHMIS certification, and a training allowance for up to 24 weeks (32.5 hrs/wk).",
         "description": "YouthWorx is HRM's flagship structured employment & training program. Participants get one-on-one staff support to build their resume, complete WHMIS certification and skills identification, and receive a training allowance based on a 32.5-hour work week for up to 24 weeks.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://www.halifax.ca/parks-recreation/halifax-youth",
+        "apply_url": "https://www.halifax.ca/parks-recreation/youth/youth-worx-job-experience-program",
         "is_featured": True,
     },
     {
@@ -34,7 +34,7 @@ PROGRAMS = [
         "short_description": "Free 12-week leadership program for HRM youth: civic engagement, public speaking, project planning.",
         "description": "LEAD is a free 12-week leadership development program for HRM youth ages 14-21. Workshops cover civic engagement, public speaking, project management, and community organizing. Participants design a community impact project with a $500 micro-grant.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://www.halifax.ca/",
+        "apply_url": "https://www.halifax.ca/parks-recreation/halifax-youth/youth-leadership-program",
         "is_featured": True,
     },
     {
@@ -48,7 +48,7 @@ PROGRAMS = [
         "short_description": "Free drop-in programs, mentorship & leadership at YMCA Halifax and Dartmouth.",
         "description": "YMCA youth programming: drop-in nights, leadership clubs, employment readiness workshops, and the Y Youth Council. Free for ages 12-18 in Halifax and Dartmouth.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://ymcahfx.ca/",
+        "apply_url": "https://ymcahfx.ca/youthleadership/",
         "is_featured": False,
     },
     {
@@ -62,7 +62,7 @@ PROGRAMS = [
         "short_description": "Wraparound supports: housing, mental health, education & employment for Halifax youth in need.",
         "description": "Phoenix Youth offers shelter, transitional housing, mental health counselling, and employment supports for youth ages 11-24 facing homelessness or instability.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://phoenixyouth.ca/",
+        "apply_url": "https://www.phoenixyouth.ca/",
         "is_featured": False,
     },
     {
@@ -76,7 +76,7 @@ PROGRAMS = [
         "short_description": "YWCA program supporting youth in transition — including employment readiness and life-stability supports.",
         "description": "NSTAY supports youth in transition (housing, education, family) and includes employment-readiness coaching as part of holistic wraparound support.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://ywcahalifax.com/programs/nstay",
+        "apply_url": "https://www.ywcahalifax.com/programs/gender-based-violence-supports/nstay/",
         "is_featured": False,
     },
 
@@ -92,7 +92,7 @@ PROGRAMS = [
         "short_description": "Launch your business idea with mentorship, funding & community for African Nova Scotian and Black newcomer youth.",
         "description": "BBI supports African Nova Scotian, Black newcomer, and Caribbean diaspora youth entrepreneurs across HRM with business plan coaching, micro-loans, mentorship circles, and showcase events.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://www.bbi.ca/",
+        "apply_url": "https://businessisjammin.ca",
         "is_featured": True,
     },
     {
@@ -106,7 +106,7 @@ PROGRAMS = [
         "short_description": "Paid 2-phase employment readiness: confidence-building workshops + a 10-week paid work placement (30 hrs/wk).",
         "description": "Phase 1: interactive workshops to build confidence and job-search skills. Phase 2: a 10-week paid supported work placement at 30 hours per week. One of the strongest paid employment-readiness programs in Halifax.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://ywcahalifax.com/programs/employment-skills",
+        "apply_url": "https://www.ywcahalifax.com/programs/employment-skills/",
         "is_featured": True,
     },
     {
@@ -120,7 +120,7 @@ PROGRAMS = [
         "short_description": "Free job fairs, resume clinics, and interview-prep workshops at branch libraries — walk-in friendly.",
         "description": "Halifax Public Libraries offer free job fairs, career workshops, resume-building sessions, and interview preparation at multiple branches across HRM. Completely free, walk-in friendly, and open to everyone.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://www.halifaxpubliclibraries.ca/programs/",
+        "apply_url": "https://www.halifaxpubliclibraries.ca/business-careers/",
         "is_featured": False,
     },
     {
@@ -134,7 +134,7 @@ PROGRAMS = [
         "short_description": "Free employment services tailored for newcomers and general job seekers. Resume workshops, job fairs, hidden-job-market access.",
         "description": "Two locations: 2269 Gottingen Street, Halifax (902-430-6621) and 118 Wyse Road, Dartmouth (902-461-2513). Free resume workshops, job fairs, interview prep, hidden-job-market access, and dedicated newcomer support.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://ymcansworks.ca",
+        "apply_url": "https://www.ymcansworks.ca/",
         "is_featured": False,
     },
 
@@ -165,22 +165,8 @@ PROGRAMS = [
         "short_description": "National pre-arrival pre-employment support — start your Halifax job search before you even land.",
         "description": "SOPA is a national program led by ISANS offering tailored pre-employment assistance to newcomers, helping them find and retain employment even before they arrive in Canada. Already arrived? Support continues post-arrival.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://isans.ca/services/sopa/",
+        "apply_url": "https://isans.ca/",
         "is_featured": True,
-    },
-    {
-        "slug": "metroworks",
-        "name": "MetroWorks",
-        "organization": "MetroWorks",
-        "category": "Employment & Training",
-        "audiences": ["immigrant"],
-        "age_min": 18, "age_max": 99, "neighbourhood": "Bayers Road, Halifax",
-        "tags": ["essential-skills", "social-enterprise", "work-experience"],
-        "short_description": "Build employability skills through essential-skills training and supported social-enterprise work experience.",
-        "description": "MetroWorks gives newcomers the opportunity to build employability skills through essential-skills training and real work experience inside supported social enterprises.\n\n📍 7071 Bayers Road, LL05, Halifax  📞 902-453-6246",
-        "image_url": IMG_GROUP,
-        "apply_url": "https://mymetroworks.ca",
-        "is_featured": False,
     },
     {
         "slug": "veith-house",
@@ -193,7 +179,7 @@ PROGRAMS = [
         "short_description": "One-to-one settlement support, conversation club, English tutoring, and family programs for newcomers.",
         "description": "Veith House offers one-to-one settlement support, a conversation club, English language tutoring, and other community programs for newcomer families.\n\n📍 3115 Veith Street, Halifax",
         "image_url": IMG_GROUP,
-        "apply_url": "https://veithhouse.com",
+        "apply_url": "https://www.veithhouse.com/newcomers-programs",
         "is_featured": False,
     },
     {
@@ -207,7 +193,7 @@ PROGRAMS = [
         "short_description": "Family budgeting, taxation, loans, credit cards & financial basics — for newcomers and refugees.",
         "description": "YWCA's Financial Literacy program for immigrants and refugees covers family budgeting, taxation, loans, credit cards, and other financial topics. Delivered at most immigrant-serving organizations across Nova Scotia.\n\n📞 902-423-6162",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://ywcahalifax.com",
+        "apply_url": "https://www.ywcahalifax.com/programs/",
         "is_featured": False,
     },
     {
@@ -221,7 +207,7 @@ PROGRAMS = [
         "short_description": "Regular ISANS-hosted career fairs and recruitment events for newcomers. Subscribe to ISANS newsletter for dates.",
         "description": "ISANS hosts regular recruitment sessions and career fairs specifically for newcomers — a supportive environment to meet local employers directly. Subscribe to their newsletter at isans.ca for upcoming dates.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://isans.ca/events/",
+        "apply_url": "https://isans.ca/",
         "is_featured": False,
     },
     {
@@ -235,7 +221,7 @@ PROGRAMS = [
         "short_description": "Free federal language training (English LINC / French CLIC) for permanent residents and refugees.",
         "description": "LINC (English) and CLIC (French) are funded by Immigration, Refugees and Citizenship Canada. Free language training to strengthen your professional English/French. Available for Permanent Residents and those with refugee status.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/new-immigrants/new-life-canada/improve-english-french/classes.html",
+        "apply_url": "https://isans.ca/",
         "is_featured": False,
     },
     {
@@ -249,7 +235,7 @@ PROGRAMS = [
         "short_description": "Earn an ECE diploma tuition-free WHILE working — fully paid training-to-employment pathway.",
         "description": "Newcomers can complete a tuition-free Early Childhood Education diploma while earning income working in the field, in partnership with ISANS and the NS Department of Education. A fully paid training-to-employment pathway.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://isans.ca/services/employment/ece-pathway/",
+        "apply_url": "https://isans.ca/",
         "is_featured": True,
     },
     {
@@ -263,7 +249,7 @@ PROGRAMS = [
         "short_description": "Permanent-residence pathway with 4 streams — Skilled Worker & International Graduate among them. Modernized Feb 2026.",
         "description": "As of February 2026, Nova Scotia consolidated its previous 10 NSNP streams into 4 main pathways including a Skilled Worker stream and an International Graduate stream for those who studied at NS post-secondary institutions.\n\n📞 1-877-292-9597",
         "image_url": IMG_CITY,
-        "apply_url": "https://liveinnovascotia.com",
+        "apply_url": "https://novascotia.ca/immigration/",
         "is_featured": False,
     },
     {
@@ -281,20 +267,6 @@ PROGRAMS = [
         "is_featured": False,
     },
     {
-        "slug": "fswep-international",
-        "name": "FSWEP — Federal Student Work Experience (international students)",
-        "organization": "Government of Canada",
-        "category": "Government",
-        "audiences": ["immigrant"],
-        "age_min": 16, "age_max": 30, "neighbourhood": "Province-wide",
-        "tags": ["federal", "student", "study-permit"],
-        "short_description": "Available to international students with valid study/work permits — federal government work experience.",
-        "description": "FSWEP provides international students with valid study/work permits paid work experience across Canada's federal departments — admin, policy, support roles. Apply year-round.",
-        "image_url": IMG_CITY,
-        "apply_url": "https://www.canada.ca/en/public-service-commission/jobs/services/recruitment/students/federal-student-work-program.html",
-        "is_featured": False,
-    },
-    {
         "slug": "uacwa-she-matters",
         "name": "UACWA — S.H.E. Matters Project",
         "organization": "United African Canadian Women's Association",
@@ -305,7 +277,7 @@ PROGRAMS = [
         "short_description": "Networking, mentorship, essential skills, conversation clubs & whole-health wellness for newcomer women.",
         "description": "S.H.E. Matters is a multi-faceted program by UACWA focusing on networking, mentorship, orientation, essential skills, conversation clubs, and whole-health wellness specifically for newcomer women.\n\n📍 61 Boland Street, Dartmouth  ✉️ uacwainhalifax@gmail.com",
         "image_url": IMG_GROUP,
-        "apply_url": "mailto:uacwainhalifax@gmail.com",
+        "apply_url": "https://uacwa.ca/",
         "is_featured": False,
     },
     {
@@ -319,7 +291,7 @@ PROGRAMS = [
         "short_description": "Community-based newcomer directory — services, networking, entrepreneur connections, on-site & online.",
         "description": "Community-based organization offering a wide range of services to newcomers both on-site and online — including connections to economic development organizations and help for newcomer entrepreneurs to network and grow.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://newinhalifax.ca",
+        "apply_url": "https://newinhalifax.ca/",
         "is_featured": False,
     },
     {
@@ -333,7 +305,7 @@ PROGRAMS = [
         "short_description": "Free legal & settlement support for refugee claimants throughout Atlantic Canada.",
         "description": "Free legal representation and settlement support to refugee claimants throughout Atlantic Canada — including help with work permits, school enrolment, and medical access.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://www.halifaxrefugeeclinic.org/",
+        "apply_url": "https://halifaxrefugeeclinic.org/",
         "is_featured": False,
     },
 
@@ -349,7 +321,7 @@ PROGRAMS = [
         "short_description": "Free employment & career resource centre — workshops, job listings, and weekly Friday job-postings emails.",
         "description": "Job Junction is a free employment and career resource centre. Services include workshops, curated job listings, career support, and a weekly job-postings email every Friday.\n\n📍 6950 Mumford Road, Halifax",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://jobjunction.ca",
+        "apply_url": "https://jobjunction.ca/",
         "is_featured": True,
     },
     {
@@ -363,7 +335,7 @@ PROGRAMS = [
         "short_description": "Province-wide one-stop employment service — free resume reviews, job boards, interview coaching & career planning.",
         "description": "Nova Scotia Works is a one-stop job-search and career-advice resource. Walk-in centres across Halifax offer free resume reviews, job boards, interview coaching, and career planning at no cost.",
         "image_url": IMG_CITY,
-        "apply_url": "https://novascotiaworks.ca",
+        "apply_url": "https://novascotiaworks.ca/nsdc/",
         "is_featured": False,
     },
     {
@@ -377,7 +349,7 @@ PROGRAMS = [
         "short_description": "Community-focused employment support at 7051 Bayers Road, Suite 501, Halifax. Call 902-422-8900.",
         "description": "📍 7051 Bayers Road, Suite 501, Halifax  📞 902-422-8900\n\nProvides employment support with a community-focused approach — career planning, resume help, and connections to local employers.",
         "image_url": IMG_GROUP,
-        "apply_url": "https://teamworkcooperative.ca",
+        "apply_url": "https://www.teamworkcooperative.ca/",
         "is_featured": False,
     },
     {
@@ -405,7 +377,7 @@ PROGRAMS = [
         "short_description": "Provincial wage subsidy — student summer placements at NS non-profits.",
         "description": "SKILL connects post-secondary and high-school students with summer placements in non-profit, charitable, and community organizations across Nova Scotia. May–August.",
         "image_url": IMG_CITY,
-        "apply_url": "https://novascotia.ca/lae/employmentnovascotia/programs.asp",
+        "apply_url": "https://novascotia.ca/programs/student-summer-skills-incentive/",
         "is_featured": False,
     },
     {
@@ -419,7 +391,7 @@ PROGRAMS = [
         "short_description": "Federal wage-subsidy that reimburses employers up to 70% / $7,000 for hiring post-secondary students.",
         "description": "SWPP reimburses employers up to 70% of wages (max $7,000) when hiring post-secondary students. Mention this subsidy to potential employers — it makes them more likely to hire you.",
         "image_url": IMG_LAPTOPS,
-        "apply_url": "https://www.canada.ca/en/employment-social-development/services/funding/student-work-placement.html",
+        "apply_url": "https://www.canada.ca/en/employment-social-development/programs/student-work-placement-program.html",
         "is_featured": False,
     },
 ]
