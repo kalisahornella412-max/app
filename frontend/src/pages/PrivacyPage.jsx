@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 
 const UPDATED = "November 6, 2026";
+const CONTACT = "kalisahornella412@gmail.com";
 
 const sections = [
   {
@@ -51,8 +52,9 @@ const sections = [
   {
     h: "Changes & contact",
     p: [
-      `This policy was last updated on ${UPDATED}. If we change how we handle your data we will update this page. Questions about privacy can be sent to the site administrator via the contact details shared with partner organizations.`,
+      `This policy was last updated on ${UPDATED}. If we change how we handle your data we will update this page.`,
     ],
+    contact: true,
   },
 ];
 
@@ -75,6 +77,12 @@ export default function PrivacyPage() {
               <ul className="mt-2 space-y-2 list-disc ml-5 text-sm leading-relaxed text-black/80">
                 {s.list.map((t, i) => <li key={i}>{t}</li>)}
               </ul>
+            )}
+            {s.contact && (
+              <p className="mt-3 text-sm leading-relaxed text-black/80">
+                Privacy questions, data requests or deletion requests (including from a parent or guardian): email{" "}
+                <a href={`mailto:${CONTACT}`} data-testid="privacy-contact-email" className="font-bold underline">{CONTACT}</a>. We aim to reply within 5 business days.
+              </p>
             )}
           </div>
         ))}

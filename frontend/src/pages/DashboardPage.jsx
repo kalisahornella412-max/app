@@ -6,6 +6,7 @@ import { Bookmark, FileText, Calendar, Trash2, Briefcase, ExternalLink, X, Spark
 import { toast } from "sonner";
 import { StatusSelect, ClosingBadge, daysUntil } from "../lib/applications";
 import CoverLetterDialog from "../components/CoverLetterDialog";
+import InterviewPrepDialog from "../components/InterviewPrepDialog";
 
 export default function DashboardPage() {
   const { user, setUser } = useAuth();
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [rsvps, setRsvps] = useState([]);
   const [events, setEvents] = useState([]);
   const [letterDialog, setLetterDialog] = useState({ open: false, job: null, letter: null });
+  const [prepDialog, setPrepDialog] = useState({ open: false, job: null });
   const [digestSending, setDigestSending] = useState(false);
 
   async function reload() {
@@ -115,7 +117,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2"><Briefcase size={20} strokeWidth={3} /><h2 className="font-display font-black text-xl">Saved Jobs & Application Tracker</h2></div>
             <span className="font-mono-d text-sm">{savedJobs.length}</span>
           </div>
-          <p className="text-xs text-black/60 mb-4">Update each job's status as you go: Saved → Applied → Interviewed → Hired.</p>
+          <p className="text-xs text-black/60 mb-4">Update each job's status as you go: Saved → Applied → Interviewed → Hired. Mark a job "Interviewed" to unlock the AI Interview Prep Coach.</p>
           {savedJobs.length === 0 ? (
             <p className="text-sm text-black/60">No saved jobs yet. <Link to="/jobs" className="underline font-bold">Browse live openings →</Link></p>
           ) : (
@@ -137,6 +139,9 @@ export default function DashboardPage() {
                     <StatusSelect kind="jobs" id={j.job_id} value={j.status} testId={`job-status-${j.job_id}`}
                       onChange={(status) => setSavedJobs((list) => list.map((x) => x.job_id === j.job_id ? { ...x, status } : x))} />
                     <div className="flex items-center gap-2">
+                      {(j.status === "interviewed" || j.status === "hired") && (
+                        <button onClick={() => setPrepDialog({ open: true, job: j })} data-testid={`interview-prep-btn-${j.job_id}`} title="Interview prep" className="bg-[#0055A4] text-white brutal-border brutal-press px-2 py-1 font-bold uppercase text-[11px] inline-flex items-center gap-1"><Sparkles size={11} strokeWidth={3} />Prep</button>
+                      )}
                       <button onClick={() => setLetterDialog({ open: true, job: j, letter: null })} data-testid={`cover-letter-btn-${j.job_id}`} title="Write cover letter" className="bg-white brutal-border brutal-press px-2 py-1 font-bold uppercase text-[11px] inline-flex items-center gap-1"><Sparkles size={11} strokeWidth={3} />Letter</button>
                       <a href={j.apply_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold uppercase text-xs">Apply <ExternalLink size={12} strokeWidth={3} /></a>
                     </div>
@@ -240,6 +245,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <InterviewPrepDialog open={prepDialog.open} onOpenChange={(o) => setPrepDialog((s) => ({ ...s, open: o }))} job={prepDialog.job} />
       <CoverLetterDialog
         open={letterDialog.open}
         onOpenChange={(o) => setLetterDialog((s) => ({ ...s, open: o }))}

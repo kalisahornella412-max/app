@@ -848,6 +848,135 @@ async def delete_cover_letter(letter_id: str, user: dict = Depends(get_current_u
     return {"ok": True}
 
 
+# ---------- Interview Prep Coach ----------
+class InterviewQuestionsIn(BaseModel):
+    job_id: str
+    resume_id: Optional[str] = None
+
+
+class InterviewChatIn(BaseModel):
+    job_id: str
+    session_id: Optional[str] = None
+    message: Optional[str] = None
+    resume_id: Optional[str] = None
+
+
+def _llm_chat(system: str, session_id: str):
+    try:
+        from emergentintegrations.llm.chat import LlmChat
+    except Exception as e:
+        logger.error(f"emergentintegrations import failed: {e}")
+        raise HTTPException(500, "AI assistant unavailable")
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "EMERGENT_LLM_KEY not configured")
+    return LlmChat(api_key=api_key, session_id=session_id, system_message=system).with_model("anthropic", "claude-sonnet-4-6")
+
+
+async def _interview_context(user: dict, job_id: str, resume_id: Optional[str]) -> tuple[dict, str]:
+    job = await db.saved_jobs.find_one({"user_id": str(user["_id"]), "job_id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(404, "Saved job not found")
+    resume = None
+    if resume_id:
+        resume = await db.resumes.find_one({"_id": ObjectId(resume_id), "user_id": str(user["_id"])})
+    if not resume:
+        resume = await db.resumes.find_one({"user_id": str(user["_id"])}, sort=[("updated_at", -1)])
+    ctx = (
+        f"JOB\nTitle: {job['title']}\nEmployer: {job.get('employer') or 'unknown'}\nLocation: {job.get('location') or 'Halifax'}\n"
+        f"Details: {job.get('description') or 'not provided'}\n\nCANDIDATE RESUME\n{_resume_text(resume) if resume else 'No resume saved yet — assume an entry-level candidate.'}"
+    )
+    return job, ctx
+
+
+@api.post("/interview-prep/questions")
+async def interview_questions(payload: InterviewQuestionsIn, user: dict = Depends(get_current_user)):
+    job, ctx = await _interview_context(user, payload.job_id, payload.resume_id)
+    system = (
+        "You are an interview coach for Halifax, Nova Scotia youth and newcomers to Canada. "
+        "Produce exactly 8 realistic interview questions for the job, tailored to the candidate's resume: "
+        "2 about motivation/fit, 3 behavioural (STAR), 2 role-specific/practical, 1 'questions for us'. "
+        "For each give a short tip (max 25 words) and a sample answer (60-90 words, first person, drawn only from the resume facts; "
+        "if the resume lacks something, show how to answer honestly). Plain Canadian English. "
+        'Return ONLY JSON: {"questions":[{"question":"...","tip":"...","sample_answer":"..."}]}'
+    )
+    chat = _llm_chat(system, f"interview-q-{uuid.uuid4()}")
+    from emergentintegrations.llm.chat import UserMessage
+    try:
+        text = str(await chat.send_message(UserMessage(text=ctx)))
+    except Exception as e:
+        logger.error(f"LLM error: {e}")
+        raise HTTPException(502, "AI request failed")
+    import json as _json
+    m = re.search(r"\{.*\}", text, re.S)
+    try:
+        data = _json.loads(m.group(0) if m else text)
+        questions = [q for q in data.get("questions", []) if q.get("question")][:8]
+    except Exception:
+        raise HTTPException(502, "AI returned an unexpected format — try again")
+    if not questions:
+        raise HTTPException(502, "AI returned no questions — try again")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.interview_preps.update_one(
+        {"user_id": str(user["_id"]), "job_id": payload.job_id},
+        {"$set": {"user_id": str(user["_id"]), "job_id": payload.job_id, "job_title": job["title"], "employer": job.get("employer"), "questions": questions, "updated_at": now}},
+        upsert=True,
+    )
+    return {"job_id": payload.job_id, "job_title": job["title"], "employer": job.get("employer"), "questions": questions, "updated_at": now}
+
+
+@api.get("/interview-prep/{job_id}")
+async def get_interview_prep(job_id: str, user: dict = Depends(get_current_user)):
+    doc = await db.interview_preps.find_one({"user_id": str(user["_id"]), "job_id": job_id}, {"_id": 0})
+    session = await db.interview_sessions.find_one({"user_id": str(user["_id"]), "job_id": job_id}, {"_id": 0}, sort=[("updated_at", -1)])
+    return {"prep": doc, "session": session}
+
+
+MOCK_SYSTEM = (
+    "You are a friendly but realistic hiring manager running a mock interview for the job below, with a Halifax youth or newcomer candidate. "
+    "Ask ONE question at a time. After each candidate answer: give 2-3 sentences of specific, encouraging feedback (what worked, one concrete improvement), "
+    "then ask the next question. Cover motivation, behavioural (STAR), and role-specific questions over the session. "
+    "After the 6th answer, instead of a new question give a short overall summary (strengths, top 2 things to practise, a confidence score out of 10) and end with 'Interview complete.' "
+    "Keep each reply under 140 words. Plain Canadian English. Never invent facts about the candidate.\n\n"
+)
+
+
+@api.post("/interview-prep/chat")
+async def interview_chat(payload: InterviewChatIn, user: dict = Depends(get_current_user)):
+    job, ctx = await _interview_context(user, payload.job_id, payload.resume_id)
+    uid = str(user["_id"])
+    now = datetime.now(timezone.utc).isoformat()
+    session = None
+    if payload.session_id:
+        session = await db.interview_sessions.find_one({"session_id": payload.session_id, "user_id": uid}, {"_id": 0})
+    if not session:
+        session = {"session_id": str(uuid.uuid4()), "user_id": uid, "job_id": payload.job_id, "job_title": job["title"], "messages": [], "created_at": now, "updated_at": now}
+    history = session["messages"]
+    if payload.message and payload.message.strip():
+        history.append({"role": "user", "content": payload.message.strip(), "at": now})
+    transcript = "\n".join(f"{'CANDIDATE' if m['role'] == 'user' else 'INTERVIEWER'}: {m['content']}" for m in history)
+    answers = sum(1 for m in history if m["role"] == "user")
+    prompt = f"{ctx}\n\nTRANSCRIPT SO FAR ({answers} candidate answers):\n{transcript or '(none — open the interview with a warm one-line welcome and the first question)'}\n\nRespond as the interviewer now."
+    chat = _llm_chat(MOCK_SYSTEM, f"interview-chat-{session['session_id']}-{len(history)}")
+    from emergentintegrations.llm.chat import UserMessage
+    try:
+        reply = str(await chat.send_message(UserMessage(text=prompt))).strip().replace("**", "")
+    except Exception as e:
+        logger.error(f"LLM error: {e}")
+        raise HTTPException(502, "AI request failed")
+    history.append({"role": "assistant", "content": reply, "at": datetime.now(timezone.utc).isoformat()})
+    session["updated_at"] = datetime.now(timezone.utc).isoformat()
+    session["complete"] = "interview complete" in reply.lower()
+    await db.interview_sessions.update_one({"session_id": session["session_id"]}, {"$set": session}, upsert=True)
+    return {"session_id": session["session_id"], "messages": history, "complete": session["complete"]}
+
+
+@api.delete("/interview-prep/sessions/{session_id}")
+async def reset_interview_session(session_id: str, user: dict = Depends(get_current_user)):
+    await db.interview_sessions.delete_one({"session_id": session_id, "user_id": str(user["_id"])})
+    return {"ok": True}
+
+
 # ---------- Closing-soon digest (daily cron) ----------
 def _parse_dt(s: Optional[str]) -> Optional[datetime]:
     if not s:
