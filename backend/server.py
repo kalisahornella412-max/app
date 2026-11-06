@@ -6,6 +6,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 import os
+import re
 import logging
 import secrets
 import uuid
@@ -315,10 +316,10 @@ async def list_programs(
     filt: dict = {}
     if q:
         filt["$or"] = [
-            {"name": {"$regex": q, "$options": "i"}},
-            {"organization": {"$regex": q, "$options": "i"}},
-            {"description": {"$regex": q, "$options": "i"}},
-            {"tags": {"$regex": q, "$options": "i"}},
+            {"name": {"$regex": re.escape(q), "$options": "i"}},
+            {"organization": {"$regex": re.escape(q), "$options": "i"}},
+            {"description": {"$regex": re.escape(q), "$options": "i"}},
+            {"tags": {"$regex": re.escape(q), "$options": "i"}},
         ]
     if category and category != "all":
         filt["category"] = category
@@ -353,6 +354,7 @@ async def get_program(program_id: str):
 async def create_program(payload: ProgramIn, _admin: dict = Depends(require_admin)):
     doc = payload.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["seeded"] = False
     res = await db.programs.insert_one(doc)
     doc["_id"] = res.inserted_id
     return _serialize_doc(doc)
@@ -382,14 +384,14 @@ async def list_jobs(
     filt: dict = {}
     if q:
         filt["$or"] = [
-            {"title": {"$regex": q, "$options": "i"}},
-            {"employer": {"$regex": q, "$options": "i"}},
-            {"description": {"$regex": q, "$options": "i"}},
+            {"title": {"$regex": re.escape(q), "$options": "i"}},
+            {"employer": {"$regex": re.escape(q), "$options": "i"}},
+            {"description": {"$regex": re.escape(q), "$options": "i"}},
         ]
     if category and category != "all":
         filt["category"] = category
     if location:
-        filt["location"] = {"$regex": location, "$options": "i"}
+        filt["location"] = {"$regex": re.escape(location), "$options": "i"}
     if audience and audience != "all":
         filt["audiences"] = audience
     docs = await db.jobs.find(filt).sort("posted_at", -1).to_list(500)
@@ -434,6 +436,7 @@ async def get_job(job_id: str):
 async def create_job(payload: JobIn, _admin: dict = Depends(require_admin)):
     doc = payload.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["seeded"] = False
     res = await db.jobs.insert_one(doc)
     doc["_id"] = res.inserted_id
     return _serialize_doc(doc)
@@ -467,6 +470,7 @@ async def get_event(event_id: str):
 async def create_event(payload: EventIn, _admin: dict = Depends(require_admin)):
     doc = payload.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["seeded"] = False
     res = await db.events.insert_one(doc)
     doc["_id"] = res.inserted_id
     return _serialize_doc(doc)
@@ -718,9 +722,9 @@ async def on_startup():
 
     # Seed programs (upsert + remove programs that are no longer in seed_data.py)
     seed_program_slugs = [p["slug"] for p in PROGRAMS]
-    await db.programs.delete_many({"slug": {"$nin": seed_program_slugs}})
+    await db.programs.delete_many({"slug": {"$nin": seed_program_slugs}, "seeded": {"$ne": False}})
     for p in PROGRAMS:
-        doc = dict(p)
+        doc = {**p, "seeded": True}
         await db.programs.update_one(
             {"slug": p["slug"]},
             {
@@ -731,10 +735,9 @@ async def on_startup():
         )
     # Seed jobs (upsert by slug + cleanup unrelated entries)
     seed_job_slugs = [j["slug"] for j in JOBS]
-    await db.jobs.delete_many({"slug": {"$exists": False}})
-    await db.jobs.delete_many({"slug": {"$nin": seed_job_slugs}})
+    await db.jobs.delete_many({"slug": {"$nin": seed_job_slugs}, "seeded": {"$ne": False}})
     for j in JOBS:
-        doc = dict(j)
+        doc = {**j, "seeded": True}
         await db.jobs.update_one(
             {"slug": j["slug"]},
             {
@@ -745,10 +748,9 @@ async def on_startup():
         )
     # Seed events (upsert by slug + cleanup)
     seed_event_slugs = [e["slug"] for e in EVENTS]
-    await db.events.delete_many({"slug": {"$exists": False}})
-    await db.events.delete_many({"slug": {"$nin": seed_event_slugs}})
+    await db.events.delete_many({"slug": {"$nin": seed_event_slugs}, "seeded": {"$ne": False}})
     for e in EVENTS:
-        doc = dict(e)
+        doc = {**e, "seeded": True}
         await db.events.update_one(
             {"slug": e["slug"]},
             {

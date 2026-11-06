@@ -7,14 +7,20 @@ import { useAuth } from "./auth";
 export function useSavedJobs() {
   const { user } = useAuth();
   const [savedIds, setSavedIds] = useState(new Set());
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!user) { setSavedIds(new Set()); return; }
-    api.get("/me/saved-jobs").then((r) => setSavedIds(new Set(r.data.map((j) => j.job_id)))).catch(() => {});
+    if (!user) { setSavedIds(new Set()); setReady(true); return; }
+    setReady(false);
+    api.get("/me/saved-jobs")
+      .then((r) => setSavedIds(new Set(r.data.map((j) => j.job_id))))
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, [user]);
 
   const toggle = useCallback(async (job) => {
     if (!user) return toast.error("Sign in to save jobs");
+    if (!ready) return;
     const id = String(job.id);
     if (savedIds.has(id)) {
       await api.delete(`/saved/jobs/${encodeURIComponent(id)}`);
@@ -34,7 +40,7 @@ export function useSavedJobs() {
       setSavedIds((s) => new Set(s).add(id));
       toast.success("Job saved to dashboard");
     }
-  }, [user, savedIds]);
+  }, [user, savedIds, ready]);
 
   return { savedIds, toggle, isSaved: (id) => savedIds.has(String(id)) };
 }

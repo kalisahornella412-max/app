@@ -1,0 +1,36 @@
+{
+  "summary": "Tested expanded Spotlight jobs (17 total, 11 youth, 10 newcomer), posted_at sorting/badges, category/search filters, audience switch, mobile overflow, and saved-job regression. All requested features work. Found 1 minor frontend bug (stale category filter across audience switch), 1 minor backend bug (unescaped regex in ?q= gives 500), and 1 minor race in the save toggle.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/jobs?q=(", "issue": "Returns 500. pymongo OperationFailure 'Regular expression is invalid' because q goes into $regex without escaping. Fix: re.escape(q). The same pattern probably exists for location and in other list endpoints."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "JobsPage category select", "issue": "The category state is not reset when the audience changes. To reproduce: on Youth, pick 'Retail', then switch to Newcomers. The page shows '0 spotlights', but the select displays 'All categories' because the Retail option no longer exists. Fix: setCategory('all') in the audience useEffect, or reset it when the category is not in the new list.", "selector": "[data-testid=jobs-category]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Save job toggle right after page load", "issue": "useSavedJobs starts with an empty savedIds set until GET /me/saved-jobs resolves. Clicking the bookmark of an already-saved job in that window sends POST (re-save, 'Job saved' toast) instead of DELETE. Seen during the test. Fix: disable the buttons until loaded, or track a loaded flag.", "affected_selectors": ["[data-testid^=save-job-]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration10_spotlight_jobs.py", "/app/test_reports/pytest/pytest_iteration10.xml"],
+  "action_items": [
+    "JobsPage.jsx: reset category to 'all' when audience changes (stale filter shows 0 results while the select reads 'All categories')",
+    "server.py list_jobs (and other $regex filters): wrap user input in re.escape() to stop 500s on special characters",
+    "savedJobs.jsx: guard toggle until the saved IDs have loaded"
+  ],
+  "critical_code_review_comments": [
+    "server.py startup seeding runs db.jobs.delete_many({'slug': {'$nin': seed_job_slugs}}) (same for events): every admin-created job or event (POST /api/jobs) is wiped on each backend restart. This is a data-loss risk; limit cleanup to known legacy slugs or mark seeded docs.",
+    "posted_at is computed at module import time (_ago(n)), and $set overwrites it on every restart. 'Posted Xd ago' resets at each deploy and never ages past 10d. This is fine for demo data but not real recency.",
+    "Saved-job snapshots keyed by Mongo _id: if seeding ever re-creates job documents, saved bookmarks lose their link to the job (job_id mismatch)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration10_spotlight_jobs.py"],
+  "success_rate": {"backend": "92% (12/13; the only failure is regex escaping)", "frontend": "95% (all requested flows pass; 1 stale-filter edge-case bug)"},
+  "test_credentials": "admin@halifaxyouth.ca / admin123 (worked)",
+  "seed_data_creation": "None. Temporary saved-job bookmarks for admin were created and deleted; admin saved-jobs list is empty again, as before the test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Verified: /api/jobs counts 17/11/10, all fields present, https apply_url, ISO posted_at, sorted desc, q=transit and Healthcare+immigrant filters work. UI: 11 youth spotlights with posted badges (yesterday through 1w ago). Category list = Healthcare, Student Jobs, Retail, Recreation, Seasonal, Skilled Trades, Government, Hospitality, Community. Retail -> 1 card, 'library' -> Library Page. Newcomers -> 10 spotlights including Bus Operator, CCA and Warehouse Order Selector. Mobile 390px: scrollWidth=390, no overflow, wage badge wraps inside the card. Save -> dashboard works. Audience toggle testids: audience-youth and audience-immigrant."
+}

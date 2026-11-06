@@ -22,7 +22,7 @@ export default function JobsPage() {
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
 
-  useEffect(() => { api.get(`/jobs?audience=${audience}`).then((r) => setJobs(r.data)); }, [audience]);
+  useEffect(() => { setCategory("all"); api.get(`/jobs?audience=${audience}`).then((r) => setJobs(r.data)); }, [audience]);
 
   const categories = useMemo(() => ["all", ...new Set(jobs.map((j) => j.category))], [jobs]);
 

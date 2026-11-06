@@ -40,6 +40,8 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ Invalid ObjectId now returns 404 instead of 500
 - ✅ Saved Jobs: bookmark button on live Job Bank cards + Spotlight cards (/jobs), "Saved Jobs" section on dashboard with remove + Apply link. Live postings are snapshotted (`saved_jobs` collection) since Job Bank listings expire. Endpoints: `POST /api/saved/jobs`, `DELETE /api/saved/jobs/{job_id}`, `GET /api/me/saved-jobs`
 - ✅ Fixed `/api/live-jobs` 500 regression (`_build_url(audience)` signature) — youth audience uses Job Bank youth flag + title classifier
+- ✅ Spotlight jobs expanded 5 → 17 (11 youth / 10 newcomer, real Halifax employers: Sobeys, Canada Post, HPL, HRM Rec, Cineplex, FSWEP, Hope Blooms, Dal, NSH CCA, Halifax Transit, Irving Shipbuilding, IWK, CRA…). `posted_at` field + "Posted Xd ago" badge, newest-first sort. Summer roles (YMCA camp, lifeguard, CSJ) only seeded Feb–Jul (`SUMMER_JOBS` in seed_data.py)
+- ✅ Hardening: `re.escape` on all `$regex` search inputs; seed cleanup only deletes `seeded != False` docs so admin-created programs/jobs/events survive restarts; category filter resets on audience switch; save-toggle waits for saved list to load
 
 ## Backlog (P1)
 - Email notifications for RSVPs and application reminders (Resend/SendGrid)
