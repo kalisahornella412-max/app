@@ -5,12 +5,7 @@ export default function Footer() {
     <footer className="border-t-2 border-black bg-[#0A0A0A] text-white mt-24" data-testid="site-footer">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 bg-[#FFD100] brutal-border flex items-center justify-center">
-              <span className="font-display font-black text-lg text-black leading-none">H</span>
-            </div>
-            <span className="font-display font-black text-2xl tracking-tighter">HALIFAX<span className="text-[#FFD100]">YOUTH</span>HUB</span>
-          </div>
+          <img src="/brand/hyh-stacked-dark.webp" alt="Halifax Youth Hub" data-testid="footer-logo" className="h-32 w-auto mb-4 -ml-2" />
           <p className="text-white/70 max-w-md leading-relaxed">
             One door to Halifax programs, jobs, mentors and events built for youth and newcomers.
             An independent community directory — every listing links to the organization's official page.

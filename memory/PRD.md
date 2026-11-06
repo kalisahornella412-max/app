@@ -57,6 +57,7 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ **All 27 programs re-verified** against official pages (web research 2026-11-06) and stamped `source_checked`; corrected: BBI → Business is Jammin' (8–35, programs URL), NSTAY (13–24, sexual-exploitation support), Ready 4 Launch (15–30, 4+10 weeks), YMCA youth (Outreach 13–21 / LEAP 15–30 / EDGE 18–26), Phoenix (16–24 core, 11–24 therapy), Job Junction moved to 7001 Mumford Rd + Bedford, Team Work Co-op, SKILL (student status not age), SWPP (50%/$5,000 since Apr 2026), NSNP 4 streams (Feb 18 2026), ISANS 14,500+ / 170+ countries (2025–26), LINC eligibility + Language for Youth 16–30, ECE Pathway streams, Veith House schedule, YWCA Financial Literacy URL, UACWA address, AIP de-specified
 - ✅ Privacy contact `kalisahornella412@gmail.com` on /privacy (mailto) and as `EMAIL_REPLY_TO` for digest replies
 - ✅ Program accuracy note restyled for contrast; mock-interview restart race fixed; optimistic answer bubble
+- ✅ Brand logo (user-supplied, white+yellow 'H' stacked mark) added: `frontend/public/brand/` — navbar tile `icon-512.png`, footer full stacked logo, favicons (32/180/512) + og:image in index.html
 
 ## Backlog (P1)
 - Email notifications for RSVPs (Resend already wired)

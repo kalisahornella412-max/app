@@ -24,9 +24,7 @@ export default function Navbar() {
     <header data-testid="main-nav" className="sticky top-0 z-50 bg-white border-b-2 border-black">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
         <Link to="/" data-testid="brand-link" className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 bg-[#FFD100] brutal-border brutal-shadow-sm flex items-center justify-center">
-            <span className="font-display font-black text-base leading-none">H</span>
-          </div>
+          <img src="/brand/icon-512.png" alt="Halifax Youth Hub" data-testid="brand-logo" className="w-8 h-8 brutal-border brutal-shadow-sm" />
           <span className="font-display font-black text-base sm:text-lg tracking-tighter">
             HALIFAX<span className="text-[#0055A4]">YOUTH</span>HUB
           </span>
