@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Sparkles, Plus, Trash2, Save, Printer } from "lucide-react";
+import { Sparkles, Plus, Trash2, Save, Printer, Lock, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+
+const DRAFT_KEY = "hyh_resume_draft";
 
 const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Clean serif-free, single column" },
@@ -36,9 +39,38 @@ export default function ResumeBuilderPage() {
   const [aiBullets, setAiBullets] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const authed = !!user && user !== false;
 
   useEffect(() => {
-    if (!user || user === false) return;
+    if (user !== false) return;
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft) setResume({ ...EMPTY, ...JSON.parse(draft) });
+  }, [user]);
+
+  useEffect(() => {
+    if (user === false) localStorage.setItem(DRAFT_KEY, JSON.stringify(resume));
+  }, [user, resume]);
+
+  function requireAuth() {
+    if (authed) return true;
+    setGateOpen(true);
+    return false;
+  }
+
+  useEffect(() => {
+    if (!authed) return;
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      localStorage.removeItem(DRAFT_KEY);
+      api.post("/resumes", { ...EMPTY, ...JSON.parse(draft) }).then(({ data }) => {
+        setResume({ ...EMPTY, ...data }); setParams({ id: data.id });
+        api.get("/resumes").then((r) => setResumes(r.data));
+        toast.success("Your draft was saved to your account");
+      });
+      return;
+    }
     api.get("/resumes").then((r) => {
       setResumes(r.data);
       const id = params.get("id");
@@ -89,7 +121,23 @@ export default function ResumeBuilderPage() {
   }
   function removeEducation(i) { update("education", resume.education.filter((_, idx) => idx !== i)); }
 
+  async function aiSummary() {
+    if (!requireAuth()) return;
+    setSummaryLoading(true);
+    try {
+      const { data } = await api.post("/resumes/ai-summary", {
+        summary: resume.summary, headline: resume.headline, skills: resume.skills || [],
+        roles: (resume.experience || []).map((e) => e.role).filter(Boolean),
+      });
+      update("summary", data.summary);
+      toast.success("Summary polished");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI request failed");
+    } finally { setSummaryLoading(false); }
+  }
+
   async function aiAssist(expIdx) {
+    if (!requireAuth()) return;
     const exp = resume.experience[expIdx];
     setAiOpenIdx(expIdx); setAiLoading(true); setAiBullets([]);
     if (!exp?.role) {
@@ -112,6 +160,7 @@ export default function ResumeBuilderPage() {
   }
 
   async function save() {
+    if (!requireAuth()) return;
     setSaving(true);
     try {
       let saved;
@@ -134,6 +183,7 @@ export default function ResumeBuilderPage() {
   }
 
   function printPDF() {
+    if (!requireAuth()) return;
     window.print();
   }
 
@@ -149,9 +199,9 @@ export default function ResumeBuilderPage() {
           <div className="flex gap-2">
             <button onClick={newResume} data-testid="resume-new" className="bg-white text-black brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-sm uppercase inline-flex items-center gap-1"><Plus size={14} strokeWidth={3} />New</button>
             <button onClick={save} disabled={saving} data-testid="resume-save" className="bg-[#FFD100] text-black brutal-border brutal-shadow brutal-press px-3 py-2 font-display font-bold text-sm uppercase inline-flex items-center gap-1 disabled:opacity-60">
-              <Save size={14} strokeWidth={3} />{saving ? "Saving…" : "Save"}
+              <Save size={14} strokeWidth={3} />{saving ? "Saving…" : "Save"}{!authed && <Lock size={12} strokeWidth={3} />}
             </button>
-            <button onClick={printPDF} data-testid="resume-print" className="bg-black text-white brutal-border brutal-shadow brutal-press px-3 py-2 font-display font-bold text-sm uppercase inline-flex items-center gap-1"><Printer size={14} strokeWidth={3} />PDF</button>
+            <button onClick={printPDF} data-testid="resume-print" className="bg-black text-white brutal-border brutal-shadow brutal-press px-3 py-2 font-display font-bold text-sm uppercase inline-flex items-center gap-1"><Printer size={14} strokeWidth={3} />PDF{!authed && <Lock size={12} strokeWidth={3} />}</button>
           </div>
         </div>
       </section>
@@ -159,6 +209,12 @@ export default function ResumeBuilderPage() {
       <section className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid lg:grid-cols-12 gap-6 print:block">
         {/* FORM */}
         <div className="lg:col-span-7 space-y-6 print:hidden">
+          {user === false && (
+            <div data-testid="resume-guest-banner" className="brutal-border brutal-shadow-sm bg-[#FFD100] p-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-bold flex items-center gap-2"><Lock size={14} strokeWidth={3} />Start for free. Create an account to use AI help, save and download your resume.</p>
+              <Link to="/register?next=/resume" data-testid="resume-guest-register" className="bg-black text-white brutal-border px-3 py-1 font-display font-bold text-xs uppercase">Create account</Link>
+            </div>
+          )}
           {resumes.length > 0 && (
             <div className="brutal-border brutal-shadow-sm bg-white p-3 flex flex-wrap gap-2 items-center">
               <span className="label-overline">My resumes:</span>
@@ -195,7 +251,12 @@ export default function ResumeBuilderPage() {
             </div>
             <Field label="Location" value={resume.location} onChange={(v) => update("location", v)} />
             <div>
-              <label className="label-overline">Summary</label>
+              <div className="flex items-center justify-between">
+                <label className="label-overline">Summary</label>
+                <button onClick={aiSummary} disabled={summaryLoading} data-testid="ai-summary" className="bg-[#0055A4] text-white brutal-border brutal-shadow-sm brutal-press px-2 py-1 font-bold text-xs uppercase inline-flex items-center gap-1 disabled:opacity-60">
+                  <Wand2 size={12} strokeWidth={3} />{summaryLoading ? "Writing…" : resume.summary ? "AI polish" : "AI write"}
+                </button>
+              </div>
               <textarea value={resume.summary} onChange={(e) => update("summary", e.target.value)} rows={3}
                 data-testid="resume-summary"
                 className="mt-1 w-full bg-white brutal-border px-3 py-2 focus:outline-none focus:bg-[#FFFCEA]" />
@@ -306,7 +367,25 @@ export default function ResumeBuilderPage() {
           </div>
         </div>
       </section>
+      <SignupGate open={gateOpen} onOpenChange={setGateOpen} />
     </div>
+  );
+}
+
+function SignupGate({ open, onOpenChange }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent data-testid="resume-signup-gate" className="brutal-border brutal-shadow bg-white rounded-none">
+        <DialogHeader>
+          <DialogTitle className="font-display font-black text-2xl tracking-tighter">Create a free account to finish</DialogTitle>
+          <DialogDescription>Your draft is kept on this device. Sign up to use AI help, save your resume and download it as a PDF.</DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-2 mt-2">
+          <Link to="/register?next=/resume" data-testid="gate-register" className="bg-[#FFD100] text-black brutal-border brutal-shadow-sm brutal-press px-4 py-2 font-display font-bold text-sm uppercase">Create account</Link>
+          <Link to="/login?next=/resume" data-testid="gate-login" className="bg-white text-black brutal-border px-4 py-2 font-display font-bold text-sm uppercase">Sign in</Link>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

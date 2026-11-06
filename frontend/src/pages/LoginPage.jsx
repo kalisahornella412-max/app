@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { toast } from "sonner";
 
 export default function LoginPage() {
   const { user, login, formatApiErrorDetail } = useAuth();
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const next = sp.get("next")?.startsWith("/") ? sp.get("next") : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (user && user !== false) return <Navigate to="/dashboard" replace />;
+  if (user && user !== false) return <Navigate to={next} replace />;
 
   async function submit(e) {
     e.preventDefault();
@@ -18,7 +20,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success("Welcome back");
-      navigate("/dashboard");
+      navigate(next);
     } catch (err) {
       toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
     } finally { setLoading(false); }
@@ -59,7 +61,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-sm text-center">
           New here?{" "}
-          <Link to="/register" className="font-display font-bold underline">Create an account</Link>
+          <Link to={`/register${sp.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-display font-bold underline">Create an account</Link>
         </p>
       </div>
     </div>

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 
@@ -22,21 +23,42 @@ DEFAULT_USER_AGENT = (
 )
 CACHE_TTL = timedelta(minutes=30)
 REQUEST_TIMEOUT = 20.0
-RESULTS_PER_PAGE = 25  # Job Bank default
+RESULTS_PER_PAGE = 25
 
 _cache: dict[str, dict] = {}
 _cache_lock = asyncio.Lock()
 
 
-def _build_url(audience: str = "all") -> str:
+# ---------- Audience classifier ----------
+# Youth-friendly entry-level roles. Match against the job TITLE only.
+YOUTH_REGEX = re.compile(
+    r"\b("
+    r"student|summer|junior|intern(ship)?|trainee|"
+    r"camp|lifeguard|cashier|barista|server|host|hostess|crew member|"
+    r"attendant|dishwasher|busser|line cook|kitchen helper|food counter|"
+    r"sales associate|retail associate|stocker|stock clerk|grocery clerk|"
+    r"courier|delivery driver|paper route|"
+    r"landscap(er|ing)|groomer|cleaner|janitor|"
+    r"child care|childcare|babysitter|tutor|"
+    r"recreation|playground|usher|cinema|theatre|"
+    r"laundry|carwash|carry-out|bagger"
+    r")\b",
+    re.I,
+)
+
+
+def classify_for_youth(job: dict) -> bool:
+    return bool(YOUTH_REGEX.search(job.get("title", "")))
+
+
+# ---------- URL builder ----------
+def _build_url() -> str:
     params: dict[str, str] = {
         "searchstring": "",
         "locationstring": "Halifax, NS",
-        "fprov": "NS",   # restrict to Nova Scotia province
-        "sort": "M",     # most recent
+        "fprov": "NS",
+        "sort": "M",
     }
-    if audience == "youth":
-        params["fyt"] = "1"  # Youth Targeted flag
     return f"{JOBBANK_BASE}{SEARCH_PATH}?{urlencode(params)}"
 
 

@@ -28,7 +28,7 @@ export default function Navbar() {
             <span className="font-display font-black text-base leading-none">H</span>
           </div>
           <span className="font-display font-black text-base sm:text-lg tracking-tighter">
-            HALIFAX<span className="text-[#0055A4]">YOUTH</span>
+            HALIFAX<span className="text-[#0055A4]">YOUTH</span>HUB
           </span>
         </Link>
 

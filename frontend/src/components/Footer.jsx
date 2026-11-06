@@ -9,7 +9,7 @@ export default function Footer() {
             <div className="w-9 h-9 bg-[#FFD100] brutal-border flex items-center justify-center">
               <span className="font-display font-black text-lg text-black leading-none">H</span>
             </div>
-            <span className="font-display font-black text-2xl tracking-tighter">HALIFAX<span className="text-[#FFD100]">YOUTH</span></span>
+            <span className="font-display font-black text-2xl tracking-tighter">HALIFAX<span className="text-[#FFD100]">YOUTH</span>HUB</span>
           </div>
           <p className="text-white/70 max-w-md leading-relaxed">
             One door to every Halifax program, summer job, mentor and event built for youth.

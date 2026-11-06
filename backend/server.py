@@ -34,7 +34,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 # ---------- App ----------
-app = FastAPI(title="Halifax Youth Programs API")
+app = FastAPI(title="Halifax Youth Hub API")
 api = APIRouter(prefix="/api")
 
 
@@ -188,6 +188,13 @@ class ResumeIn(BaseModel):
     experience: List[dict] = []
     education: List[dict] = []
     projects: List[dict] = []
+
+
+class AISummaryIn(BaseModel):
+    summary: Optional[str] = ""
+    headline: Optional[str] = ""
+    skills: List[str] = []
+    roles: List[str] = []
 
 
 class AIAssistIn(BaseModel):
@@ -401,11 +408,10 @@ async def list_event_feeds(audience: Optional[str] = None):
 
 @api.get("/live-jobs")
 async def list_live_jobs(audience: Optional[str] = None, limit: int = 24):
-    """Live Halifax jobs scraped from Job Bank Canada (cached 30 min)."""
+    """Live Halifax jobs scraped from Job Bank Canada (cached 30 min).
+    Audience filters: 'youth' → entry-level only; 'immigrant' → everything else."""
     aud = audience if audience in ("youth", "immigrant") else "all"
-    # Newcomers benefit from the broader feed (no youth flag), so 'immigrant' uses 'all'.
-    fetch_aud = "youth" if aud == "youth" else "all"
-    return await fetch_live_jobs(audience=fetch_aud, limit=limit)
+    return await fetch_live_jobs(audience=aud, limit=limit)
 
 
 @api.get("/jobs/{job_id}")
@@ -583,7 +589,7 @@ async def ai_assist(payload: AIAssistIn, _user: dict = Depends(get_current_user)
         "Use strong action verbs, quantify impact when possible, and keep each bullet under 22 words. "
         "Return ONLY the 4 bullet points, one per line, starting each with a hyphen."
     )
-    chat = LlmChat(api_key=api_key, session_id=session_id, system_message=system).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    chat = LlmChat(api_key=api_key, session_id=session_id, system_message=system).with_model("anthropic", "claude-sonnet-4-6")
     prompt = f"Role/Job Title: {payload.role}\nEmployer: {payload.company or 'N/A'}\nNotes from candidate: {payload.notes or 'None'}\n\nGenerate the bullets."
     try:
         text = await chat.send_message(UserMessage(text=prompt))
@@ -596,10 +602,36 @@ async def ai_assist(payload: AIAssistIn, _user: dict = Depends(get_current_user)
     return {"bullets": bullets, "raw": str(text)}
 
 
+@api.post("/resumes/ai-summary")
+async def ai_summary(payload: AISummaryIn, _user: dict = Depends(get_current_user)):
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "EMERGENT_LLM_KEY not configured")
+    if not (payload.summary or payload.headline or payload.skills or payload.roles):
+        raise HTTPException(400, "Add a headline, skills or a draft summary first")
+    system = (
+        "You are a resume coach for Halifax youth and newcomers to Canada. "
+        "Write or polish a professional resume summary of 2-3 sentences (max 60 words), first-person implied (no 'I'), "
+        "Canadian English, confident and plain. Return ONLY the summary text."
+    )
+    chat = LlmChat(api_key=api_key, session_id=f"resume-summary-{uuid.uuid4()}", system_message=system).with_model("anthropic", "claude-sonnet-4-6")
+    prompt = (
+        f"Headline: {payload.headline or 'N/A'}\nSkills: {', '.join(payload.skills) or 'N/A'}\n"
+        f"Roles held: {', '.join(payload.roles) or 'N/A'}\nDraft summary: {payload.summary or 'None'}"
+    )
+    try:
+        text = await chat.send_message(UserMessage(text=prompt))
+    except Exception as e:
+        logger.error(f"LLM error: {e}")
+        raise HTTPException(502, "AI request failed")
+    return {"summary": str(text).strip().strip('"')}
+
+
 # ---------- Health & Stats ----------
 @api.get("/")
 async def root():
-    return {"name": "Halifax Youth Programs API", "ok": True}
+    return {"name": "Halifax Youth Hub API", "ok": True}
 
 
 @api.get("/stats")

@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
   const { user, register, formatApiErrorDetail } = useAuth();
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const next = sp.get("next")?.startsWith("/") ? sp.get("next") : "/dashboard";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (user && user !== false) return <Navigate to="/dashboard" replace />;
+  if (user && user !== false) return <Navigate to={next} replace />;
 
   async function submit(e) {
     e.preventDefault();
@@ -19,7 +21,7 @@ export default function RegisterPage() {
     try {
       await register(email, password, name);
       toast.success("Account created. Let's go!");
-      navigate("/dashboard");
+      navigate(next);
     } catch (err) {
       toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
     } finally { setLoading(false); }
@@ -68,7 +70,7 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-sm text-center">
           Already have an account?{" "}
-          <Link to="/login" className="font-display font-bold underline">Sign in</Link>
+          <Link to={`/login${sp.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-display font-bold underline">Sign in</Link>
         </p>
       </div>
     </div>
