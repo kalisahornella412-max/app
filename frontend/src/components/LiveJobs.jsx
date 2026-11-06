@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAudience } from "../lib/audience";
 import { ExternalLink, Building2, MapPin, CalendarClock, RefreshCw, AlertTriangle } from "lucide-react";
+import { useSavedJobs, SaveJobButton } from "../lib/savedJobs";
 
 const formatRelative = (raw) => {
   if (!raw) return "";
@@ -18,6 +19,7 @@ const formatRelative = (raw) => {
 
 export default function LiveJobs() {
   const { audience } = useAudience();
+  const { isSaved, toggle } = useSavedJobs();
   const [data, setData] = useState({ jobs: [], fetched_at: null, cached: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -130,7 +132,10 @@ export default function LiveJobs() {
                 </div>
                 <div className="mt-3 pt-3 border-t-2 border-black flex items-center justify-between">
                   <span className="font-display font-bold uppercase text-xs">View on Job Bank</span>
-                  <ExternalLink size={14} strokeWidth={3} className="transition-transform group-hover:translate-x-0.5" />
+                  <div className="flex items-center gap-2">
+                    <SaveJobButton job={j} saved={isSaved(j.id)} onToggle={toggle} testId={`save-live-job-${j.id}`} />
+                    <ExternalLink size={14} strokeWidth={3} className="transition-transform group-hover:translate-x-0.5" />
+                  </div>
                 </div>
               </a>
             ))}

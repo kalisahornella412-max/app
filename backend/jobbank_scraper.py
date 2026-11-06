@@ -52,13 +52,15 @@ def classify_for_youth(job: dict) -> bool:
 
 
 # ---------- URL builder ----------
-def _build_url() -> str:
+def _build_url(audience: str = "all") -> str:
     params: dict[str, str] = {
         "searchstring": "",
         "locationstring": "Halifax, NS",
         "fprov": "NS",
         "sort": "M",
     }
+    if audience == "youth":
+        params["fyt"] = "1"
     return f"{JOBBANK_BASE}{SEARCH_PATH}?{urlencode(params)}"
 
 
@@ -168,6 +170,10 @@ async def fetch_live_jobs(audience: str = "all", limit: int = 24) -> dict:
                 logger.warning("parse error: %s", e)
         if not parsed:
             raise RuntimeError("Job Bank returned 0 HRM jobs (possible HTML change)")
+        if audience == "youth":
+            youth_jobs = [j for j in parsed if classify_for_youth(j)]
+            if len(youth_jobs) >= 6:
+                parsed = youth_jobs
 
         async with _cache_lock:
             _cache[key] = {"jobs": parsed, "ts": now, "source_url": url}

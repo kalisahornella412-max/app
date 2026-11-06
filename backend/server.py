@@ -530,6 +530,42 @@ async def my_saved_programs(user: dict = Depends(get_current_user)):
     return [_serialize_doc(d) for d in docs]
 
 
+# ---------- Saved Jobs (snapshot — live Job Bank postings are ephemeral) ----------
+class SavedJobIn(BaseModel):
+    job_id: str
+    title: str
+    employer: Optional[str] = None
+    location: Optional[str] = None
+    wage: Optional[str] = None
+    apply_url: str
+    source: str = "Job Bank"
+    posted_at: Optional[str] = None
+
+
+@api.post("/saved/jobs")
+async def save_job(payload: SavedJobIn, user: dict = Depends(get_current_user)):
+    doc = payload.model_dump()
+    doc.update({"user_id": str(user["_id"]), "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.saved_jobs.update_one(
+        {"user_id": str(user["_id"]), "job_id": payload.job_id},
+        {"$set": doc},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api.delete("/saved/jobs/{job_id}")
+async def unsave_job(job_id: str, user: dict = Depends(get_current_user)):
+    await db.saved_jobs.delete_one({"user_id": str(user["_id"]), "job_id": job_id})
+    return {"ok": True}
+
+
+@api.get("/me/saved-jobs")
+async def my_saved_jobs(user: dict = Depends(get_current_user)):
+    docs = await db.saved_jobs.find({"user_id": str(user["_id"])}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return docs
+
+
 # ---------- Resumes ----------
 @api.get("/resumes")
 async def list_resumes(user: dict = Depends(get_current_user)):

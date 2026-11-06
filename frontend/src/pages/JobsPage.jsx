@@ -4,9 +4,11 @@ import { useAudience } from "../lib/audience";
 import { Search, Briefcase, MapPin, Calendar } from "lucide-react";
 import JobFeeds from "../components/JobFeeds";
 import LiveJobs from "../components/LiveJobs";
+import { useSavedJobs, SaveJobButton } from "../lib/savedJobs";
 
 export default function JobsPage() {
   const { audience } = useAudience();
+  const { isSaved, toggle } = useSavedJobs();
   const [jobs, setJobs] = useState([]);
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
@@ -96,6 +98,7 @@ export default function JobsPage() {
               </div>
               <div className="mt-4 pt-3 border-t-2 border-black flex justify-between items-center">
                 <span className="font-display font-bold uppercase text-sm">View on {(j.apply_url || "").replace(/^https?:\/\/(www\.)?/i, "").split("/")[0] || "site"} →</span>
+                <SaveJobButton job={{ ...j, source: "Spotlight" }} saved={isSaved(j.id)} onToggle={toggle} testId={`save-job-${j.id}`} />
               </div>
             </a>
           ))}
