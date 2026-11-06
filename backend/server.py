@@ -167,6 +167,7 @@ class JobIn(BaseModel):
     description: str
     apply_url: Optional[str] = None
     deadline: Optional[str] = None
+    posted_at: Optional[str] = None
 
 
 class EventIn(BaseModel):
@@ -391,7 +392,7 @@ async def list_jobs(
         filt["location"] = {"$regex": location, "$options": "i"}
     if audience and audience != "all":
         filt["audiences"] = audience
-    docs = await db.jobs.find(filt).to_list(500)
+    docs = await db.jobs.find(filt).sort("posted_at", -1).to_list(500)
     return [_serialize_doc(d) for d in docs]
 
 

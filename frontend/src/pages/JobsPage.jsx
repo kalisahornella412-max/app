@@ -1,10 +1,19 @@
 import { useEffect, useState, useMemo } from "react";
 import { api } from "../lib/api";
 import { useAudience } from "../lib/audience";
-import { Search, Briefcase, MapPin, Calendar } from "lucide-react";
+import { Search, Briefcase, MapPin, Calendar, Clock } from "lucide-react";
 import JobFeeds from "../components/JobFeeds";
 import LiveJobs from "../components/LiveJobs";
 import { useSavedJobs, SaveJobButton } from "../lib/savedJobs";
+
+const postedAgo = (iso) => {
+  if (!iso) return null;
+  const days = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 86400000));
+  if (days === 0) return "Posted today";
+  if (days === 1) return "Posted yesterday";
+  if (days < 7) return `Posted ${days}d ago`;
+  return `Posted ${Math.floor(days / 7)}w ago`;
+};
 
 export default function JobsPage() {
   const { audience } = useAudience();
@@ -82,13 +91,18 @@ export default function JobsPage() {
               data-testid={`job-card-${j.id}`}
               className="brutal-border brutal-shadow brutal-press bg-white p-6 flex flex-col"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="label-overline text-[#FF3B30]">{j.category}</span>
+              <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="label-overline text-[#FF3B30]">{j.category}</span>
+                    {j.posted_at && (
+                      <span data-testid={`job-posted-${j.id}`} className="label-overline text-[#0055A4] inline-flex items-center gap-1"><Clock size={10} strokeWidth={3} />{postedAgo(j.posted_at)}</span>
+                    )}
+                  </div>
                   <h3 className="font-display font-black text-2xl mt-1 tracking-tight leading-tight">{j.title}</h3>
                   <p className="font-display font-bold text-black/70 mt-1">{j.employer}</p>
                 </div>
-                <div className="bg-[#FFD100] brutal-border px-3 py-1 font-display font-black text-sm whitespace-nowrap">{j.wage}</div>
+                <div className="bg-[#FFD100] brutal-border px-3 py-1 font-display font-black text-sm self-start shrink-0 sm:max-w-[45%] sm:text-right">{j.wage}</div>
               </div>
               <p className="mt-3 text-sm text-black/75 line-clamp-2">{j.short_description}</p>
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
