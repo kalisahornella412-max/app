@@ -1,0 +1,21 @@
+{
+  "summary": "Iteration 13: tested Progress & streaks (GET /api/me/progress plus the dashboard card), the re-verified events (source_checked badges, MetroWorks removed), the brand kit zip, logos and favicon, and the mobile dashboard. Backend: 31/31 passed (8 new iteration-13 tests plus the iteration 11-12 regression tests). Frontend: all requested flows passed.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "GET /api/me/progress", "issue": "The 'mock' nudge ('run one mock interview') still shows when the user already has mock sessions this week (this_week.mock=2). This happens because totals.mocks only counts sessions marked complete. The nudge text is misleading for users who started but did not finish a mock."}
+  ]},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": [
+    {"screen": "Navbar", "issues": ["brand-logo loads /brand/icon-512.png (512px) for a roughly 28px icon. A smaller asset would load faster (minor)."]}
+  ]},
+  "test_report_links": ["/app/backend/tests/test_iteration13_progress_events_brand.py", "/app/test_reports/pytest/pytest_iter13.xml"],
+  "action_items": ["Optional: change the mock nudge condition or text so users with an unfinished mock are told to finish it, not to start one"],
+  "critical_code_review_comments": [
+    "my_progress: each saved job adds at most one 'applied' event, timestamped with the latest status_updated_at. Moving a job applied→interviewed later re-dates that job's 'applied' activity to the newer week. This is fine for streaks but inflates the 'applied this week' count.",
+    "ProgressCard swallows API errors and renders nothing (no error state). This is acceptable but silent."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration13_progress_events_brand.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "One throwaway user (test_prog_*@example.com) was registered and then deleted via DELETE /api/me. Login after deletion is rejected.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "delivered@resend.dev has 1 saved job (Library Page), status 'interviewed'. It was toggled to applied and back to interviewed via the UI, and each change triggered a /me/progress refresh. Events: 8 total, all source_checked 2026-11-06; 6 youth and 5 immigrant (audience filtered, which is why the default Youth view shows 6 badges). Zip is 970610 bytes, application/zip. Mobile dashboard scrollWidth is 390 (no overflow). The only console error was a 401 on /auth/me before login, which is expected."
+}

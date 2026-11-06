@@ -1040,7 +1040,8 @@ async def my_progress(user: dict = Depends(get_current_user)):
     if totals["saved"] > totals["letters"] and resumes:
         nudges.append({"key": "letter", "text": "Write a cover letter for a saved job — AI drafts it from your resume in seconds.", "to": "/dashboard"})
     if totals["interviewed"] > 0 and totals["mocks"] == 0:
-        nudges.append({"key": "mock", "text": "You have an interview lined up — run one mock interview before the real thing.", "to": "/dashboard"})
+        started = any(s_.get("messages") for s_ in sessions)
+        nudges.append({"key": "mock", "text": "You started a mock interview — finish all six questions to get your score." if started else "You have an interview lined up — run one mock interview before the real thing.", "to": "/dashboard"})
     if streak >= 2:
         nudges.insert(0, {"key": "streak", "text": f"{streak}-week streak — keep it alive with one action before Sunday.", "to": "/jobs"})
 
