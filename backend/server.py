@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field, EmailStr
 
 from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS
 from jobbank_scraper import fetch_live_jobs
-from emailer import send_email, closing_soon_html
+from emailer import send_email, closing_soon_html, UndeliverableRecipient
 
 JWT_ALGORITHM = "HS256"
 APP_STATUSES = ("saved", "applied", "interviewed", "hired")
@@ -895,6 +895,10 @@ async def run_closing_soon_digest(run_id: str) -> dict:
             )
             await db.digest_log.insert_one({"user_id": user_id, "day": today, "run_id": run_id, "count": len(jobs), "sent_at": now.isoformat()})
             sent += 1
+        except UndeliverableRecipient:
+            failed += 1
+            await db.users.update_one({"_id": user["_id"]}, {"$set": {"email_reminders": False, "email_bounced_at": now.isoformat()}})
+            logger.warning(f"digest: {user['email']} undeliverable — reminders disabled for user {user_id}")
         except Exception as e:
             failed += 1
             logger.error(f"digest send failed for {user_id}: {e}")
@@ -929,8 +933,11 @@ async def cron_closing_soon(request: Request, background: BackgroundTasks):
 
 @api.post("/me/closing-soon-digest/preview")
 async def send_my_digest_now(user: dict = Depends(get_current_user)):
-    """Lets a signed-in user email themselves their own closing-soon list on demand."""
+    """Lets a signed-in user email themselves their own closing-soon list on demand (max once per hour)."""
     now = datetime.now(timezone.utc)
+    recent = await db.digest_log.find_one({"user_id": str(user["_id"]), "manual": True, "sent_at": {"$gte": (now - timedelta(hours=1)).isoformat()}})
+    if recent:
+        raise HTTPException(429, "You already emailed yourself in the last hour — check your inbox")
     horizon = now + timedelta(days=7)
     saved = await db.saved_jobs.find({"user_id": str(user["_id"]), "deadline": {"$ne": None}, "status": {"$ne": "hired"}}, {"_id": 0}).to_list(500)
     jobs = []
@@ -948,6 +955,7 @@ async def send_my_digest_now(user: dict = Depends(get_current_user)):
         subject=f"{len(jobs)} saved job{'s' if len(jobs) != 1 else ''} closing this week",
         html=closing_soon_html(name=(user.get("name") or "there").split(" ")[0], jobs=jobs, dashboard_url=dashboard_url),
     )
+    await db.digest_log.insert_one({"user_id": str(user["_id"]), "manual": True, "day": now.date().isoformat(), "count": len(jobs), "sent_at": now.isoformat()})
     return {"ok": True, "count": len(jobs), "email_id": email_id}
 
 

@@ -20,7 +20,7 @@ export function ClosingBadge({ deadline, testId }) {
   if (days === null || days < 0 || days > 7) return null;
   const text = days === 0 ? "Closes today" : days === 1 ? "Closes tomorrow" : "Closes this week";
   return (
-    <span data-testid={testId} className="bg-[#FF3B30] text-white brutal-border px-2 py-0.5 font-display font-black text-[10px] uppercase inline-flex items-center gap-1 animate-pulse">
+    <span data-testid={testId} className="bg-[#FF3B30] text-white brutal-border px-2 py-0.5 font-display font-black text-[10px] uppercase inline-flex items-center gap-1">
       {text}
     </span>
   );

@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 11: tested preferences, application tracker (jobs+programs), AI cover letters (real Claude), closing-soon digest (real Resend email for preview + cron idempotency), content/credibility fixes, account deletion, and frontend dashboard/resume/jobs/landing/footer/privacy/register/program detail + mobile overflow. All 13 backend tests pass; all requested frontend checks pass.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "/api/cron/closing-soon-digest (background)", "issue": "Users with undeliverable addresses (e.g. admin@halifaxyouth.ca) are counted as 'failed' every run and retried daily forever (no digest_log entry on failure). Consider marking undeliverable recipients or auto-disabling reminders after hard bounces."}
+  ]},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard saved job card", "issues": ["'Closes this week' badge (closing-badge-{id}) renders as pale pink with light text — low contrast compared to the solid red badge on /jobs; consider solid #FF3B30 bg with white text"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration11_tracker_letters_digest.py", "/app/test_reports/pytest/pytest_iter11.xml"],
+  "action_items": ["(Optional) Handle permanently-undeliverable recipients in cron digest", "(Optional) Improve contrast of dashboard closing-soon badge"],
+  "critical_code_review_comments": [
+    "server.py is 1074 lines — split into routers (auth, saved, resumes/ai, cover_letters, digest).",
+    "Duplicate LLM boilerplate (import + key check + LlmChat) in ai_assist, ai_summary, generate_cover_letter — extract helper.",
+    "Duplicate closing-soon job filtering in run_closing_soon_digest and send_my_digest_now — extract helper.",
+    "/me/closing-soon-digest/preview has no rate limit — a user can spam their own inbox / burn email credits.",
+    "StatusIn.status could be a Literal type for Pydantic validation instead of manual check (works fine as is: 400)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration11_tracker_letters_digest.py"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100%"},
+  "seed_data_creation": "Temporary: TEST_ throwaway user (deleted via DELETE /api/me), TEST_ saved job on admin (deleted), 2 cover letters for delivered@resend.dev (both deleted). One real digest email sent via preview x2 + cron run to delivered@resend.dev. delivered@resend.dev saved Library Page job status left as 'applied' (per UI test); email_reminders left TRUE.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run pytest tests/test_iteration11_tracker_letters_digest.py -p no:xdist. /resume auto-loads the user's first resume (?id=) so next-steps panel shows; '+ New' hides it. Cover letter dialog inputs testids: cover-letter-job-title / cover-letter-employer / cover-letter-resume. Auth: httpOnly Secure cookies, CORS echoes explicit origin with credentials.",
+  "test_credentials": "delivered@resend.dev / Test1234!, admin@halifaxyouth.ca / admin123 (from /app/memory/test_credentials.md)"
+}

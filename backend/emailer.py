@@ -91,6 +91,10 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} ≠ real link host {real!r} (G3)")
 
 
+class UndeliverableRecipient(HTTPException):
+    pass
+
+
 async def send_email(*, to: str, subject: str, html: str, reply_to: str | None = None) -> str | None:
     _assert_safe_email(subject, html)
     payload = {"to": [to], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
@@ -115,7 +119,7 @@ async def send_email(*, to: str, subject: str, html: str, reply_to: str | None =
             raise HTTPException(status_code=409, detail="Email is temporarily unavailable")
         logger.error(f"Email send failed: {e.response.status_code} {e.response.text}")
         if code == "undeliverable_recipient":
-            raise HTTPException(status_code=400, detail="We couldn't deliver to the email on your account — double-check the address")
+            raise UndeliverableRecipient(status_code=400, detail="We couldn't deliver to the email on your account — double-check the address")
         raise HTTPException(status_code=400, detail="Failed to send email")
     except HTTPException:
         raise
