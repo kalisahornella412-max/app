@@ -50,7 +50,11 @@ export default function ResumeBuilderPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user === false) localStorage.setItem(DRAFT_KEY, JSON.stringify(resume));
+    if (user !== false) return;
+    const touched = ["full_name", "headline", "email", "phone", "summary"].some((k) => resume[k]) ||
+      ["skills", "experience", "education"].some((k) => (resume[k] || []).length);
+    if (touched) localStorage.setItem(DRAFT_KEY, JSON.stringify(resume));
+    else localStorage.removeItem(DRAFT_KEY);
   }, [user, resume]);
 
   function requireAuth() {
@@ -63,12 +67,12 @@ export default function ResumeBuilderPage() {
     if (!authed) return;
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
-      localStorage.removeItem(DRAFT_KEY);
       api.post("/resumes", { ...EMPTY, ...JSON.parse(draft) }).then(({ data }) => {
+        localStorage.removeItem(DRAFT_KEY);
         setResume({ ...EMPTY, ...data }); setParams({ id: data.id });
         api.get("/resumes").then((r) => setResumes(r.data));
         toast.success("Your draft was saved to your account");
-      });
+      }).catch(() => toast.error("Couldn't save your draft — try Save again"));
       return;
     }
     api.get("/resumes").then((r) => {
@@ -151,7 +155,7 @@ export default function ResumeBuilderPage() {
       });
       setAiBullets(data.bullets || []);
     } catch (e) {
-      toast.error("AI request failed");
+      toast.error(e?.response?.data?.detail || "AI request failed");
     } finally { setAiLoading(false); }
   }
   function applyBullet(b) {

@@ -1,3 +1,5 @@
+from bson.errors import InvalidId
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from pathlib import Path
 ROOT_DIR = Path(__file__).parent
@@ -35,6 +37,11 @@ db = client[os.environ["DB_NAME"]]
 
 # ---------- App ----------
 app = FastAPI(title="Halifax Youth Hub API")
+
+
+@app.exception_handler(InvalidId)
+async def invalid_id_handler(_request, _exc):
+    return JSONResponse(status_code=404, content={"detail": "Not found"})
 api = APIRouter(prefix="/api")
 
 
@@ -604,7 +611,11 @@ async def ai_assist(payload: AIAssistIn, _user: dict = Depends(get_current_user)
 
 @api.post("/resumes/ai-summary")
 async def ai_summary(payload: AISummaryIn, _user: dict = Depends(get_current_user)):
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception as e:
+        logger.error(f"emergentintegrations import failed: {e}")
+        raise HTTPException(500, "AI assistant unavailable")
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
         raise HTTPException(500, "EMERGENT_LLM_KEY not configured")

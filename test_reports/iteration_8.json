@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 8: Tested the rename to Halifax Youth Hub, guest resume gating, carrying a guest draft over at signup, AI summary and AI bullets (real Claude calls), ?next login/register redirects, and checked that the other pages still load. Backend: 9 of 10 pytest tests pass. Frontend: all requested flows pass. One logic bug: an empty junk resume is created when a guest visits /resume without typing and then logs in. One minor backend bug: an invalid resume id returns 500.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT/DELETE /api/resumes/{resume_id}", "issue": "A resume_id that is not a valid ObjectId (e.g. 'not-an-objectid') raises bson InvalidId, so the API returns 500 instead of 400/404. Wrap ObjectId() in a validator."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Guest draft -> login/register", "issue": "ResumeBuilderPage.jsx line 52-54 writes the EMPTY resume to localStorage 'hyh_resume_draft' on every guest visit, even if the guest typed nothing. When that person later logs in and opens /resume, the effect at line 62-72 POSTs an empty 'My Resume', shows the toast 'Your draft was saved to your account' and opens the empty resume instead of their existing one. Reproduced: a user who already had resume TEST_Existing visited /resume as a guest without typing, logged in via /login?next=/resume, and ended up with ['TEST_Existing', 'My Resume'] with the empty resume selected.", "affected_selectors": ["resume-preview", "resume-guest-banner"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration8_resume_ai.py", "/app/test_reports/pytest/pytest_it8.xml"],
+  "action_items": [
+    "ResumeBuilderPage: only save the guest draft (or only auto-POST it after login) when it differs from EMPTY, e.g. full_name/summary/headline/skills/experience/education is non-empty. Otherwise just remove the key and load the existing resumes.",
+    "Backend: return 400/404 for an invalid ObjectId in /api/resumes/{id} PUT/DELETE (and in any other ObjectId(...) path params).",
+    "/app/memory/test_credentials.md: testuser@halifaxyouth.ca / Test1234! returns 401 Invalid credentials. Seed the account or update the file."
+  ],
+  "critical_code_review_comments": [
+    "Junk-draft bug described above (the draft is saved without checking whether it is empty).",
+    "If a logged-in user who already has resumes registers or logs in with a draft, the draft becomes a new resume, which is fine. But the auto-POST has no .catch, so if it fails the draft is lost silently, because localStorage.removeItem runs before the POST.",
+    "ai_summary does its emergentintegrations import without try/except, unlike ai_assist. If the import fails, it raises an unhandled 500.",
+    "aiAssist shows the generic 'AI request failed' message and ignores the backend detail. aiSummary shows the detail."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration8_resume_ai.py"],
+  "success_rate": {"backend": "90% (9/10)", "frontend": "95% (all requested bullets pass; 1 edge-case bug)"},
+  "test_credentials": "admin@halifaxyouth.ca/admin123 works. testuser@halifaxyouth.ca/Test1234! FAILS (401).",
+  "seed_data_creation": "Registered TEST users test_it8_*, test_gate_*, test_nonext_*, test_junk_* @example.com, with TEST resumes in their own accounts.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Verified: the tab title, brand-link and footer show Halifax Youth Hub / HALIFAXYOUTHHUB. Guests can open /resume, see the banner and live preview, and every gated action (save, print, ai-summary, ai-assist-0) opens resume-signup-gate with the correct hrefs. The draft persists across reload. Registering via gate-register returns to /resume?id=..., shows the toast and the My resumes list, and clears localStorage. AI summary writes text and ai-assist returns 4 bullets; Add appends a bullet to the preview, and Save works. Login and register without ?next go to /dashboard. The links between login and register keep ?next (URL-encoded as %2Fresume). Programs, jobs, events and dashboard all load. Retest: the junk-draft fix and invalid ObjectId handling.",
+  "rca of the issue": "Junk resume: useEffect([user, resume]) persists the resume state for any guest, including the untouched EMPTY default. The authed effect treats any localStorage draft as real work and POSTs it. Fix: skip the save or POST when the draft has no user-entered content."
+}

@@ -33,7 +33,14 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ Neo-brutalist design system + responsive nav with mobile menu
 - ✅ Frontend testing 100% on all flagged flows
 
+## Update (2026-06)
+- ✅ Site renamed to Halifax Youth Hub (tab title, meta description, navbar, footer, API name)
+- ✅ Resume builder open to guests; draft kept in browser. Save, PDF download and AI help need an account (sign-up modal, ?next=/resume redirect, guest draft auto-saved to account after login)
+- ✅ AI summary write/polish (POST /api/resumes/ai-summary) + AI bullets, Claude Sonnet 4.6 via Emergent key
+- ✅ Invalid ObjectId now returns 404 instead of 500
+
 ## Backlog (P1)
+- Favourites for live Job Bank jobs on dashboard
 - Email notifications for RSVPs and application reminders (Resend/SendGrid)
 - Direct PDF generation (server-side via reportlab) so styling is consistent across browsers
 - Per-user rate limit on `/api/resumes/ai-assist` (currently unlimited)
