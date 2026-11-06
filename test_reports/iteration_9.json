@@ -1,0 +1,30 @@
+{
+  "summary": "Tested the Saved Jobs feature (backend and frontend) and the /api/live-jobs regression fix. Live jobs returns 200 with 6 scraped Job Bank jobs for both youth and immigrant. The saved-jobs flow works: POST, no duplicates on repeat POST, GET (no _id), DELETE, and 401 without a login. On /jobs the live and Spotlight bookmark buttons work: they show the right toasts, flip aria-pressed, and do not navigate or open a new tab. Guests get the toast 'Sign in to save jobs'. The dashboard Saved Jobs section shows cards with source badge, title, employer and location, wage, and an Apply link that opens in a new tab. Removing a card updates the count and stays removed after reload. Saved Programs, Resumes and RSVPs still render. Login and logout work (/auth/me returns 401 after logout).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/saved/jobs/{job_id}", "issue": "A job_id containing '/' (even when URL-encoded as %2F) returns 404, so the saved record can't be deleted. Real IDs (Job Bank numeric IDs and ObjectId hex) are not affected. Fix: use the {job_id:path} route type, or check that job_id only uses a safe character set on POST."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration9_saved_jobs.py", "/app/test_reports/pytest/pytest_iteration9.xml"],
+  "action_items": [
+    "(Minor) Make DELETE /saved/jobs accept IDs containing a slash (job_id:path), or validate job_id format on POST.",
+    "(Minor) useSavedJobs.toggle has no try/catch, so a failed API call becomes an unhandled promise rejection with no error toast. Add error handling."
+  ],
+  "critical_code_review_comments": [
+    "savedJobs.jsx toggle(): no try/catch around api.post/delete. Network or 401 errors show no feedback.",
+    "useSavedJobs is used separately in both LiveJobs and JobsPage, so /jobs fetches /me/saved-jobs twice. This is harmless but redundant. A shared context would remove the duplicate call.",
+    "Optional: the SavedJobIn Pydantic model has no length limits on the string fields."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration9_saved_jobs.py"],
+  "success_rate": {"backend": "89% (8/9; the 1 failure is a minor edge case)", "frontend": "100%"},
+  "seed_data_creation": "None kept. Test saved jobs were created for the admin account and removed by job_id (the slash-ID test record was deleted directly by its exact job_id).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Saved jobs feature verified end to end with admin@halifaxyouth.ca. Job Bank scraping was reachable (job id 50674235 seen). The dashboard section renders before /me/saved-jobs resolves, so wait for the card selectors rather than the section."
+}

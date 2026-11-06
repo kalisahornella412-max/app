@@ -38,9 +38,10 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ Resume builder open to guests; draft kept in browser. Save, PDF download and AI help need an account (sign-up modal, ?next=/resume redirect, guest draft auto-saved to account after login)
 - ✅ AI summary write/polish (POST /api/resumes/ai-summary) + AI bullets, Claude Sonnet 4.6 via Emergent key
 - ✅ Invalid ObjectId now returns 404 instead of 500
+- ✅ Saved Jobs: bookmark button on live Job Bank cards + Spotlight cards (/jobs), "Saved Jobs" section on dashboard with remove + Apply link. Live postings are snapshotted (`saved_jobs` collection) since Job Bank listings expire. Endpoints: `POST /api/saved/jobs`, `DELETE /api/saved/jobs/{job_id}`, `GET /api/me/saved-jobs`
+- ✅ Fixed `/api/live-jobs` 500 regression (`_build_url(audience)` signature) — youth audience uses Job Bank youth flag + title classifier
 
 ## Backlog (P1)
-- Favourites for live Job Bank jobs on dashboard
 - Email notifications for RSVPs and application reminders (Resend/SendGrid)
 - Direct PDF generation (server-side via reportlab) so styling is consistent across browsers
 - Per-user rate limit on `/api/resumes/ai-assist` (currently unlimited)
