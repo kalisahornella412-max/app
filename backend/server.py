@@ -20,6 +20,7 @@ from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, BackgroundTasks
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import ReturnDocument
 from pydantic import BaseModel, Field, EmailStr
 
 from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS
@@ -85,8 +86,8 @@ def create_refresh_token(user_id: str) -> str:
 
 
 def set_auth_cookies(response: Response, access: str, refresh: str):
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=60 * 60 * 24, path="/")
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=60 * 60 * 24 * 7, path="/")
+    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24, path="/")
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 7, path="/")
 
 
 def serialize_user(u: dict) -> dict:
@@ -216,13 +217,29 @@ class AIAssistIn(BaseModel):
     notes: Optional[str] = ""
 
 
+AI_DAILY_LIMIT = int(os.environ.get("AI_DAILY_LIMIT", "40"))
+
+
+async def check_ai_quota(user: dict) -> None:
+    if user.get("role") == "admin":
+        return
+    day = datetime.now(timezone.utc).date().isoformat()
+    doc = await db.ai_usage.find_one_and_update(
+        {"user_id": str(user["_id"]), "day": day},
+        {"$inc": {"count": 1}, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True, return_document=ReturnDocument.AFTER,
+    )
+    if doc and doc.get("count", 0) > AI_DAILY_LIMIT:
+        raise HTTPException(429, "You've hit today's AI limit — it resets at midnight. Your drafts are saved.")
+
+
 # ---------- Auth Routes ----------
 @api.post("/auth/register")
 async def register(payload: RegisterIn, response: Response):
     email = payload.email.lower().strip()
     existing = await db.users.find_one({"email": email})
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="We couldn't create an account with those details. Try signing in or use a different email.")
     doc = {
         "email": email,
         "password_hash": hash_password(payload.password),
@@ -243,26 +260,30 @@ async def register(payload: RegisterIn, response: Response):
 async def login(payload: LoginIn, response: Response, request: Request):
     email = payload.email.lower().strip()
     ip = request.client.host if request.client else "unknown"
-    identifier = f"{ip}:{email}"
+    identifiers = [f"{ip}:{email}", f"acct:{email}"]
+    limits = {identifiers[0]: 5, identifiers[1]: 20}
 
-    rec = await db.login_attempts.find_one({"identifier": identifier})
-    if rec and rec.get("count", 0) >= 5:
-        locked_until = rec.get("locked_until")
-        if locked_until and locked_until.tzinfo is None:
-            locked_until = locked_until.replace(tzinfo=timezone.utc)
-        if locked_until and locked_until > datetime.now(timezone.utc):
-            raise HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
+    now = datetime.now(timezone.utc)
+    for ident in identifiers:
+        rec = await db.login_attempts.find_one({"identifier": ident})
+        if rec and rec.get("count", 0) >= limits[ident]:
+            locked_until = rec.get("locked_until")
+            if locked_until and locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=timezone.utc)
+            if locked_until and locked_until > now:
+                raise HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
 
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(payload.password, user["password_hash"]):
-        await db.login_attempts.update_one(
-            {"identifier": identifier},
-            {"$inc": {"count": 1}, "$set": {"locked_until": datetime.now(timezone.utc) + timedelta(minutes=15)}},
-            upsert=True,
-        )
+        for ident in identifiers:
+            await db.login_attempts.update_one(
+                {"identifier": ident},
+                {"$inc": {"count": 1}, "$set": {"locked_until": now + timedelta(minutes=15)}},
+                upsert=True,
+            )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    await db.login_attempts.delete_one({"identifier": identifier})
+    await db.login_attempts.delete_many({"identifier": {"$in": identifiers}})
     user_id = str(user["_id"])
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
@@ -292,7 +313,8 @@ async def update_preferences(payload: PreferencesIn, user: dict = Depends(get_cu
 async def delete_my_account(response: Response, user: dict = Depends(get_current_user)):
     """User-initiated permanent deletion of their account and everything tied to it."""
     uid = str(user["_id"])
-    for coll in (db.resumes, db.cover_letters, db.saved_jobs, db.saved_programs, db.rsvps, db.digest_log):
+    for coll in (db.resumes, db.cover_letters, db.saved_jobs, db.saved_programs, db.rsvps, db.digest_log,
+                 db.interview_preps, db.interview_sessions, db.ai_usage):
         await coll.delete_many({"user_id": uid})
     await db.users.delete_one({"_id": user["_id"]})
     response.delete_cookie("access_token", path="/")
@@ -318,7 +340,7 @@ async def refresh_token(request: Request, response: Response):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         access = create_access_token(str(user["_id"]), user["email"])
-        response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=60 * 60 * 24, path="/")
+        response.set_cookie("access_token", access, httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24, path="/")
         return {"ok": True}
     except pyjwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -690,6 +712,7 @@ async def delete_resume(resume_id: str, user: dict = Depends(get_current_user)):
 # ---------- AI Resume Helper ----------
 @api.post("/resumes/ai-assist")
 async def ai_assist(payload: AIAssistIn, _user: dict = Depends(get_current_user)):
+    await check_ai_quota(_user)
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except Exception as e:
@@ -722,6 +745,7 @@ async def ai_assist(payload: AIAssistIn, _user: dict = Depends(get_current_user)
 
 @api.post("/resumes/ai-summary")
 async def ai_summary(payload: AISummaryIn, _user: dict = Depends(get_current_user)):
+    await check_ai_quota(_user)
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except Exception as e:
@@ -779,6 +803,7 @@ def _resume_text(r: dict) -> str:
 
 @api.post("/cover-letters/generate")
 async def generate_cover_letter(payload: CoverLetterGenIn, user: dict = Depends(get_current_user)):
+    await check_ai_quota(user)
     resume = await db.resumes.find_one({"_id": ObjectId(payload.resume_id), "user_id": str(user["_id"])})
     if not resume:
         raise HTTPException(404, "Resume not found")
@@ -893,6 +918,7 @@ async def _interview_context(user: dict, job_id: str, resume_id: Optional[str]) 
 
 @api.post("/interview-prep/questions")
 async def interview_questions(payload: InterviewQuestionsIn, user: dict = Depends(get_current_user)):
+    await check_ai_quota(user)
     job, ctx = await _interview_context(user, payload.job_id, payload.resume_id)
     system = (
         "You are an interview coach for Halifax, Nova Scotia youth and newcomers to Canada. "
@@ -945,6 +971,7 @@ MOCK_SYSTEM = (
 
 @api.post("/interview-prep/chat")
 async def interview_chat(payload: InterviewChatIn, user: dict = Depends(get_current_user)):
+    await check_ai_quota(user)
     job, ctx = await _interview_context(user, payload.job_id, payload.resume_id)
     uid = str(user["_id"])
     now = datetime.now(timezone.utc).isoformat()
@@ -1180,7 +1207,6 @@ async def stats():
         "programs": await db.programs.count_documents({}),
         "jobs": await db.jobs.count_documents({}),
         "events": await db.events.count_documents({}),
-        "users": await db.users.count_documents({}),
     }
 
 
@@ -1192,10 +1218,10 @@ async def on_startup():
     await db.login_attempts.create_index("identifier")
 
     # Admin seeding
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@halifaxyouth.ca")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    existing = await db.users.find_one({"email": admin_email})
-    if not existing:
+    admin_email = os.environ.get("ADMIN_EMAIL")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+    existing = await db.users.find_one({"email": admin_email}) if admin_email else None
+    if admin_email and admin_password and not existing:
         await db.users.insert_one({
             "email": admin_email,
             "password_hash": hash_password(admin_password),
@@ -1204,9 +1230,6 @@ async def on_startup():
             "created_at": datetime.now(timezone.utc),
         })
         logger.info("Seeded admin user")
-    elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password), "role": "admin"}})
-        logger.info("Updated admin password")
 
     # Seed programs (upsert + remove programs that are no longer in seed_data.py)
     seed_program_slugs = [p["slug"] for p in PROGRAMS]
@@ -1278,13 +1301,28 @@ async def on_shutdown():
 # ---------- Mount router & CORS ----------
 app.include_router(api)
 
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-allowed = [frontend_url, "http://localhost:3000"]
+_origins = {o.strip().strip('"').rstrip("/") for o in (os.environ.get("CORS_ORIGINS", "") + "," + os.environ.get("FRONTEND_URL", "")).split(",") if o.strip()}
+_origins.discard("*")  # never allow wildcard with credentials
+_origins.add("http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed,
-    allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
+    allow_origins=sorted(_origins),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Webhook-Id"],
 )
+
+
+@app.middleware("http")
+async def csrf_and_headers(request: Request, call_next):
+    # Form posts can't set application/json without a CORS preflight — blocks classic CSRF.
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.url.path.startswith("/api/"):
+        ctype = request.headers.get("content-type", "")
+        if not ctype.startswith("application/json") and request.headers.get("content-length", "0") not in ("", "0"):
+            return Response(content='{"detail":"Content-Type must be application/json"}', status_code=415, media_type="application/json")
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response

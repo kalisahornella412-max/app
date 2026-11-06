@@ -196,12 +196,12 @@ async def fetch_live_jobs(audience: str = "all", limit: int = 24) -> dict:
                 "source_url": stale["source_url"],
                 "cached": True,
                 "stale": True,
-                "error": str(e),
+                "error": "Job Bank is temporarily unavailable — showing what we have.",
             }
         return {
             "jobs": [],
             "fetched_at": now.isoformat(),
             "source_url": url,
             "cached": False,
-            "error": str(e),
+            "error": "Job Bank is temporarily unavailable — showing what we have.",
         }
