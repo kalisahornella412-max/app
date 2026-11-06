@@ -1,0 +1,32 @@
+{
+  "summary": "Security-fix verification + regression. Backend: 16 tests in test_iteration14_security.py -> 14 pass, 1 xfail (infra), 1 FAIL (login IP throttle). CORS exact-origin allowlist OK (evil.preview origin gets no ACAO, own origin echoed with credentials), security headers OK, 415 for text/plain, form-urlencoded and multipart OK, register no longer enumerates, /api/stats has no users key, admin login OK, AI quota doc in ai_usage incremented by exactly 1 per call, account deletion wipes resumes/saved_jobs/interview_sessions/interview_preps/ai_usage/users, cron 200 (401 with bad secret). Frontend: login -> /dashboard with progress-card + saved jobs, reload keeps session, /jobs bookmark toggles (POST/DELETE 200), cover-letter dialog opens, logout -> /login and /auth/me 401. All frontend flows 100%.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/login", "issue": "Per-IP+email throttle (5) does not trigger reliably: 6th wrong password returns 401, not 429. RCA: ip = request.client.host is the ingress pod IP, and the preview has several ingress pods (seen in login_attempts: '10.219.5.134:<email>' count 4, '10.30.130.133:<email>' count 2), so the count is split across keys. Only the acct:<email> limit (20) ends up working. Fix: take the client IP from X-Forwarded-For (the entry the trusted proxy adds, not one the client can set) or X-Real-IP, then fall back to request.client.host.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "csrf_and_headers middleware", "issue": "Bodyless state-changing requests skip the Content-Type check because of the content-length==0 exemption. Reproduced: POST /api/saved/programs/{id} with Content-Type x-www-form-urlencoded and an empty body plus the session cookie -> 200 (a cross-site <form> with no inputs does the same). Affects POST /events/{id}/rsvp, POST /saved/programs/{id}, POST /auth/logout, POST /me/closing-soon-digest/preview. SameSite=Lax would block this in production, but in preview the ingress rewrites cookies to SameSite=None (see below), so the middleware is the only defence there. Suggest: also require a custom header (e.g. X-Requested-With) or check that Origin/Referer is in the allowlist for unsafe methods."},
+      {"endpoint": "Set-Cookie (preview ingress)", "issue": "The backend sends SameSite=lax (checked on localhost:8001), but the public preview URL returns 'SameSite=None; Partitioned' because the Emergent/Cloudflare ingress rewrites it. Infra behaviour, not a code bug. Check the production domain separately."},
+      {"endpoint": "check_ai_quota", "issue": "The quota is used up before the LLM call, so 502 failures still count. A per-account lockout of 20 also lets anyone lock out any known email (including the admin) for 15 minutes. These are accepted trade-offs, listed here for awareness."},
+      {"endpoint": "csrf_and_headers", "issue": "The content-type check is case-sensitive: 'Application/JSON' would be rejected. Very minor."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_iteration14_security.py", "/app/test_reports/pytest/pytest_iter14.xml"],
+  "action_items": [
+    "Fix the login throttle client-IP detection behind the ingress (use X-Forwarded-For / X-Real-IP) so the 6th failed attempt for ip+email returns 429",
+    "Optional: close the empty-body CSRF gap with an Origin/Referer allowlist check or a required custom header on unsafe /api methods"
+  ],
+  "critical_code_review_comments": [
+    "server.py login(): request.client.host is the proxy IP, not the client IP. The per-IP limit is split across ingress replicas and is shared by all users behind the same pod",
+    "csrf middleware: the content-length 0 exemption allows bodyless cross-site form POSTs",
+    "server.py is 1329 lines and should be split into routers (auth, jobs, ai, cron)"
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration14_security.py"],
+  "success_rate": {"backend": "93.75% (15/16, 1 xfail counted as infra)", "frontend": "100%"},
+  "test_credentials": "delivered@resend.dev / Test1234!, admin@halifaxyouth.ca / admin123 (both working, not locked)",
+  "seed_data_creation": "None kept. Throwaway test_del_* users were created and deleted through DELETE /api/me; test_throttle_* login_attempts were cleaned up. A saved program toggled on delivered@resend.dev during the CSRF probe was removed. About 4 real AI calls in total (2 ai-summary on delivered, 2 interview chat on throwaway users).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest /app/backend/tests/test_iteration14_security.py -p no:xdist. Each run makes 2 real AI calls. test_throttle_6th_429 should pass once the throttle IP fix lands. The cookie test xfails on preview because the ingress rewrites SameSite."
+}

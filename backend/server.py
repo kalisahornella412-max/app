@@ -21,6 +21,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Respons
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ReturnDocument
+from urllib.parse import urlparse
 from pydantic import BaseModel, Field, EmailStr
 
 from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS
@@ -217,6 +218,13 @@ class AIAssistIn(BaseModel):
     notes: Optional[str] = ""
 
 
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.headers.get("x-real-ip") or (request.client.host if request.client else "unknown")
+
+
 AI_DAILY_LIMIT = int(os.environ.get("AI_DAILY_LIMIT", "40"))
 
 
@@ -259,7 +267,7 @@ async def register(payload: RegisterIn, response: Response):
 @api.post("/auth/login")
 async def login(payload: LoginIn, response: Response, request: Request):
     email = payload.email.lower().strip()
-    ip = request.client.host if request.client else "unknown"
+    ip = _client_ip(request)
     identifiers = [f"{ip}:{email}", f"acct:{email}"]
     limits = {identifiers[0]: 5, identifiers[1]: 20}
 
@@ -1313,12 +1321,27 @@ app.add_middleware(
 )
 
 
+def _origin_allowed(value: str) -> bool:
+    try:
+        parsed = urlparse(value)
+        return f"{parsed.scheme}://{parsed.netloc}" in _origins
+    except Exception:
+        return False
+
+
 @app.middleware("http")
 async def csrf_and_headers(request: Request, call_next):
-    # Form posts can't set application/json without a CORS preflight — blocks classic CSRF.
-    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.url.path.startswith("/api/"):
-        ctype = request.headers.get("content-type", "")
-        if not ctype.startswith("application/json") and request.headers.get("content-length", "0") not in ("", "0"):
+    path = request.url.path
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and path.startswith("/api/") and not path.startswith("/api/cron/"):
+        # Browsers always send Origin (or at least Referer) on cross-site unsafe requests — reject unknown sites.
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        if origin and not _origin_allowed(origin):
+            return Response(content='{"detail":"Cross-site request blocked"}', status_code=403, media_type="application/json")
+        if not origin and referer and not _origin_allowed(referer):
+            return Response(content='{"detail":"Cross-site request blocked"}', status_code=403, media_type="application/json")
+        ctype = request.headers.get("content-type", "").lower()
+        if request.headers.get("content-length", "0") not in ("", "0") and not ctype.startswith("application/json"):
             return Response(content='{"detail":"Content-Type must be application/json"}', status_code=415, media_type="application/json")
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
