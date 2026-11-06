@@ -1,0 +1,31 @@
+{
+  "summary": "Retest of iteration_14 security fixes. Backend: 13/13 pass in test_iteration15_throttle_csrf.py. Login throttle: a throwaway email gets five 401s, then 429 on the 6th attempt. The ip identifier is now the real client IP (35.x), not the pod IP. CSRF: logout with Origin evil.example -> 403 and the session stays valid. Referer evil.example with no Origin -> 403. Origin 'null' -> 403. Look-alike origin (<app>.evil.example) -> 403. Form-urlencoded empty-body POST /api/saved/programs/{id} with evil Origin -> 403 and nothing is written to the DB. Content-Type 'Application/JSON' with the app's own Origin -> 200 (not 415). A same-origin Referer is allowed. Own-origin logout -> 200. GET with an evil Origin is not blocked. Cron with Bearer secret and no Origin -> 200 (wrong secret -> 401). Frontend regression: UI login -> /dashboard; saved-job status PATCH interviewed->applied->interviewed (200, 200); /jobs live-job save/unsave (POST 200, DELETE 200); logout -> /auth/me 401. No same-origin browser request was blocked (403/415). One residual weakness: X-Forwarded-For can be spoofed (see below).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/login", "issue": "_client_ip trusts the FIRST X-Forwarded-For hop, which the client controls. The ingress appends to a client-supplied XFF instead of overwriting it. Verified: 8 failed logins for one email, each with a different spoofed X-Forwarded-For (1.2.3.0-7), all returned 401 and none 429. Each got its own '1.2.3.N:email' identifier. The 5-attempt ip+email limit can be bypassed; only the acct:email limit (20 per 15 min) still caps an attacker. Fix: use the right-most entry, or right-most minus the number of trusted proxies (the hop added by the trusted ingress), or X-Real-IP if the ingress sets it from the socket and overwrites it."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration15_throttle_csrf.py", "/app/test_reports/pytest/pytest_iter15.xml"],
+  "action_items": [
+    "Optional hardening: in _client_ip, use the right-most (trusted-proxy-appended) X-Forwarded-For entry instead of the first one, so spoofed XFF headers can't rotate past the 5-attempt ip+email throttle"
+  ],
+  "critical_code_review_comments": [
+    "_client_ip: first-hop X-Forwarded-For can be spoofed (see minor issue).",
+    "csrf_and_headers: the 415 check only runs when Content-Length is non-zero. A chunked request (Transfer-Encoding without Content-Length) with a non-JSON body skips it. Low risk because the Origin check now runs first, but consider also checking for transfer-encoding.",
+    "Requests with no Origin and no Referer are allowed. This is fine for non-browser clients, and modern browsers always send Origin on cross-site POSTs.",
+    "server.py is ~1350 lines and should be split into routers (auth, jobs, ai, cron, middleware)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration15_throttle_csrf.py"],
+  "success_rate": {"backend": "100% (13/13); XFF spoof bypass found by an extra probe", "frontend": "100%"},
+  "test_credentials": "delivered@resend.dev / Test1234! (unchanged, not locked out); throwaway emails test_throttle_*/test_ipident_*/test_xff_*@example.com, whose login_attempts records were deleted after the tests",
+  "seed_data_creation": "None. delivered@resend.dev's saved job status was toggled and restored to 'interviewed', which updated status_updated_at. A live job was saved and then unsaved. email_reminders was set to true (it was already true). One cron digest run was triggered (idempotent per day via digest_log).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Throttle + CSRF Origin/Referer allowlist verified in iteration 15. Remaining optional item: XFF first-hop spoofing in _client_ip. Run tests/test_iteration15_throttle_csrf.py with -p no:xdist for regression."
+}

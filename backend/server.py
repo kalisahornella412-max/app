@@ -219,9 +219,10 @@ class AIAssistIn(BaseModel):
 
 
 def _client_ip(request: Request) -> str:
+    # Right-most hop is the one appended by our trusted ingress; left-most is client-controlled.
     fwd = request.headers.get("x-forwarded-for", "")
     if fwd:
-        return fwd.split(",")[0].strip()
+        return fwd.split(",")[-1].strip()
     return request.headers.get("x-real-ip") or (request.client.host if request.client else "unknown")
 
 
