@@ -62,6 +62,9 @@ export default function EventsPage() {
                   <span className="bg-white brutal-border px-2 py-0.5 inline-flex items-center gap-1">
                     <MapPin size={12} strokeWidth={3} />{e.location}
                   </span>
+                  {e.source_checked && (
+                    <span data-testid={`event-checked-${e.slug}`} className="bg-[#F4F4F4] brutal-border px-2 py-0.5 text-black/70">Details checked {e.source_checked}</span>
+                  )}
                 </div>
                 <div className="mt-4 pt-3 border-t-2 border-black flex items-center justify-between">
                   <span className="font-display font-bold uppercase text-sm">View on host site</span>

@@ -20,6 +20,7 @@ export default function Footer() {
             <li><Link to="/events" className="hover:text-[#FFD100]">Events</Link></li>
             <li><Link to="/resume" className="hover:text-[#FFD100]">Resume Builder</Link></li>
             <li><Link to="/privacy" data-testid="footer-privacy-link" className="hover:text-[#FFD100]">Privacy Policy</Link></li>
+            <li><a href="/brand/halifax-youth-hub-logo-kit.zip" download data-testid="footer-brand-kit" className="hover:text-[#FFD100]">Logo & brand kit</a></li>
           </ul>
         </div>
         <div>

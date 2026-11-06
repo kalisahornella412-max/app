@@ -981,6 +981,81 @@ async def reset_interview_session(session_id: str, user: dict = Depends(get_curr
     return {"ok": True}
 
 
+# ---------- Progress & streaks ----------
+@api.get("/me/progress")
+async def my_progress(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    now = datetime.now(timezone.utc)
+    week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    saved_jobs = await db.saved_jobs.find({"user_id": uid}, {"_id": 0, "status": 1, "status_updated_at": 1, "created_at": 1}).to_list(1000)
+    letters = await db.cover_letters.find({"user_id": uid}, {"_id": 0, "created_at": 1}).to_list(1000)
+    sessions = await db.interview_sessions.find({"user_id": uid}, {"_id": 0, "updated_at": 1, "complete": 1, "messages": 1}).to_list(1000)
+    resumes = await db.resumes.find({"user_id": uid}, {"_id": 0, "updated_at": 1}).to_list(100)
+
+    events: list[tuple[datetime, str]] = []
+    for j in saved_jobs:
+        events.append((_parse_dt(j.get("created_at")), "saved"))
+        if j.get("status") in ("applied", "interviewed", "hired") and j.get("status_updated_at"):
+            events.append((_parse_dt(j["status_updated_at"]), "applied"))
+    for l in letters:
+        events.append((_parse_dt(l.get("created_at")), "letter"))
+    for s_ in sessions:
+        if sum(1 for m in s_.get("messages", []) if m.get("role") == "user") >= 1:
+            events.append((_parse_dt(s_.get("updated_at")), "mock"))
+    for r in resumes:
+        events.append((_parse_dt(r.get("updated_at")), "resume"))
+    events = [(d, k) for d, k in events if d]
+
+    def week_key(d: datetime) -> int:
+        return (d - timedelta(days=d.weekday())).date().toordinal() // 7
+
+    active_weeks = {week_key(d) for d, _ in events}
+    this_week = week_key(now)
+    streak = 0
+    wk = this_week if this_week in active_weeks else this_week - 1
+    while wk in active_weeks:
+        streak += 1
+        wk -= 1
+
+    this_week_counts = {"saved": 0, "applied": 0, "letter": 0, "mock": 0, "resume": 0}
+    for d, k in events:
+        if d >= week_start:
+            this_week_counts[k] += 1
+    totals = {
+        "applied": sum(1 for j in saved_jobs if j.get("status") in ("applied", "interviewed", "hired")),
+        "interviewed": sum(1 for j in saved_jobs if j.get("status") in ("interviewed", "hired")),
+        "hired": sum(1 for j in saved_jobs if j.get("status") == "hired"),
+        "letters": len(letters),
+        "mocks": sum(1 for s_ in sessions if s_.get("complete")),
+        "saved": len(saved_jobs),
+    }
+
+    nudges = []
+    if not resumes:
+        nudges.append({"key": "resume", "text": "Start with a resume — it powers your cover letters and interview prep.", "to": "/resume"})
+    if totals["saved"] == 0:
+        nudges.append({"key": "save", "text": "Save a job you'd actually apply to this week.", "to": "/jobs"})
+    elif this_week_counts["applied"] == 0:
+        nudges.append({"key": "apply", "text": "You've saved jobs but haven't marked one Applied this week — pick one and send it.", "to": "/dashboard"})
+    if totals["saved"] > totals["letters"] and resumes:
+        nudges.append({"key": "letter", "text": "Write a cover letter for a saved job — AI drafts it from your resume in seconds.", "to": "/dashboard"})
+    if totals["interviewed"] > 0 and totals["mocks"] == 0:
+        nudges.append({"key": "mock", "text": "You have an interview lined up — run one mock interview before the real thing.", "to": "/dashboard"})
+    if streak >= 2:
+        nudges.insert(0, {"key": "streak", "text": f"{streak}-week streak — keep it alive with one action before Sunday.", "to": "/jobs"})
+
+    last_active = max((d for d, _ in events), default=None)
+    return {
+        "streak_weeks": streak,
+        "active_this_week": this_week in active_weeks,
+        "this_week": this_week_counts,
+        "totals": totals,
+        "nudges": nudges[:3],
+        "last_active": last_active.isoformat() if last_active else None,
+        "week_start": week_start.isoformat(),
+    }
+
+
 # ---------- Closing-soon digest (daily cron) ----------
 def _parse_dt(s: Optional[str]) -> Optional[datetime]:
     if not s:

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { StatusSelect, ClosingBadge, daysUntil } from "../lib/applications";
 import CoverLetterDialog from "../components/CoverLetterDialog";
 import InterviewPrepDialog from "../components/InterviewPrepDialog";
+import ProgressCard from "../components/ProgressCard";
 
 export default function DashboardPage() {
   const { user, setUser } = useAuth();
@@ -19,6 +20,8 @@ export default function DashboardPage() {
   const [events, setEvents] = useState([]);
   const [letterDialog, setLetterDialog] = useState({ open: false, job: null, letter: null });
   const [prepDialog, setPrepDialog] = useState({ open: false, job: null });
+  const [progressKey, setProgressKey] = useState(0);
+  const bump = () => setProgressKey((k) => k + 1);
   const [digestSending, setDigestSending] = useState(false);
 
   async function reload() {
@@ -70,6 +73,7 @@ export default function DashboardPage() {
 
   function onLetterSaved(data) {
     setLetters((l) => [data, ...l.filter((x) => x.id !== data.id)]);
+    bump();
   }
 
   async function toggleReminders() {
@@ -111,6 +115,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid lg:grid-cols-3 gap-6">
+        <ProgressCard refreshKey={progressKey} />
         {/* SAVED JOBS + TRACKER */}
         <div data-testid="dashboard-saved-jobs" className="brutal-border brutal-shadow bg-white p-6 lg:col-span-3">
           <div className="flex items-center justify-between mb-1">
@@ -137,7 +142,7 @@ export default function DashboardPage() {
                   {j.deadline && <p className="text-[11px] text-black/60 mt-1">Closes {new Date(j.deadline).toLocaleDateString()}</p>}
                   <div className="mt-3 pt-2 border-t-2 border-black/20 flex items-center justify-between gap-2 flex-wrap">
                     <StatusSelect kind="jobs" id={j.job_id} value={j.status} testId={`job-status-${j.job_id}`}
-                      onChange={(status) => setSavedJobs((list) => list.map((x) => x.job_id === j.job_id ? { ...x, status } : x))} />
+                      onChange={(status) => { setSavedJobs((list) => list.map((x) => x.job_id === j.job_id ? { ...x, status } : x)); bump(); }} />
                     <div className="flex items-center gap-2">
                       {(j.status === "interviewed" || j.status === "hired") && (
                         <button onClick={() => setPrepDialog({ open: true, job: j })} data-testid={`interview-prep-btn-${j.job_id}`} title="Interview prep" className="bg-[#0055A4] text-white brutal-border brutal-press px-2 py-1 font-bold uppercase text-[11px] inline-flex items-center gap-1"><Sparkles size={11} strokeWidth={3} />Prep</button>
@@ -245,7 +250,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <InterviewPrepDialog open={prepDialog.open} onOpenChange={(o) => setPrepDialog((s) => ({ ...s, open: o }))} job={prepDialog.job} />
+      <InterviewPrepDialog open={prepDialog.open} onOpenChange={(o) => { setPrepDialog((s) => ({ ...s, open: o })); if (!o) bump(); }} job={prepDialog.job} />
       <CoverLetterDialog
         open={letterDialog.open}
         onOpenChange={(o) => setLetterDialog((s) => ({ ...s, open: o }))}
