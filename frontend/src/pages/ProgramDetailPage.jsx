@@ -86,9 +86,12 @@ export default function ProgramDetailPage() {
                   data-testid="apply-program-btn"
                   className="mt-6 w-full bg-black text-white brutal-border brutal-shadow brutal-press px-6 py-3 font-display font-bold uppercase tracking-wide flex items-center justify-center gap-2"
                 >
-                  Apply on partner site <ExternalLink size={16} strokeWidth={3} />
+                  Apply on official site <ExternalLink size={16} strokeWidth={3} />
                 </a>
               )}
+              <p data-testid="program-accuracy-note" className="mt-3 text-[11px] leading-snug text-black/60">
+                Summarized from {p.organization}'s public website{p.source_checked ? ` (checked ${p.source_checked})` : ""}. Eligibility and dates can change — confirm on the official page before applying. Halifax Youth Hub is not affiliated with this organization.
+              </p>
               <button
                 onClick={toggleSave}
                 data-testid="save-program-btn"

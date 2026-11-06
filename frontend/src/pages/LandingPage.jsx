@@ -5,7 +5,7 @@ import { useAudience } from "../lib/audience";
 import { ArrowRight, Briefcase, FileText, Calendar, Sparkles, MapPin } from "lucide-react";
 
 const partners = [
-  "YOUTHWORX", "BBI INITIATIVE", "LEAD HRM", "YMCA HALIFAX", "PHOENIX YOUTH",
+  "YOUTH WORX", "BBI", "HRM YOUTH LEADERSHIP", "YMCA HALIFAX", "PHOENIX YOUTH",
   "ISANS", "YREACH NEWCOMER", "YWCA READY 4 LAUNCH", "JOB JUNCTION",
   "NS WORKS", "CANADA SUMMER JOBS", "FSWEP",
 ];
@@ -15,11 +15,13 @@ export default function LandingPage() {
   const [programs, setPrograms] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState({ programs: 0, jobs: 0, events: 0 });
+  const [liveCount, setLiveCount] = useState(null);
 
   useEffect(() => {
     api.get(`/programs?featured=true&audience=${audience}`).then((r) => setPrograms(r.data.slice(0, 4))).catch(() => {});
     api.get(`/jobs?audience=${audience}`).then((r) => setJobs(r.data.slice(0, 3))).catch(() => {});
     api.get("/stats").then((r) => setStats(r.data)).catch(() => {});
+    api.get(`/live-jobs?audience=${audience}&limit=100`).then((r) => setLiveCount(r.data.jobs.length)).catch(() => setLiveCount(0));
   }, [audience]);
 
   const isNewcomer = audience === "immigrant";
@@ -45,8 +47,8 @@ export default function LandingPage() {
               </h1>
               <p className="mt-6 text-lg max-w-xl text-black/75 leading-relaxed">
                 {isNewcomer
-                  ? "Settlement, language support, employment readiness, newcomer-friendly jobs and resume help — connected to ISANS, YREACH, YMCA, YWCA and more."
-                  : "Find paid summer jobs, mentorship, free workshops, and the people behind YouthWorx, BBI, LEAD, YMCA & more. Plus an AI-assisted resume builder so you actually get the job."}
+                  ? "Settlement, language support, employment readiness, newcomer-friendly jobs and resume help — with listings from ISANS, YREACH, YMCA, YWCA and more, all in one place."
+                  : "Find paid jobs, mentorship and free workshops from programs like Youth Worx, BBI, HRM Youth Leadership, YMCA & more — plus an AI-assisted resume builder so you actually get the job."}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
@@ -89,10 +91,10 @@ export default function LandingPage() {
               </div>
               <div className="grid gap-3">
                 <div className="aspect-square brutal-border brutal-shadow bg-[#FFD100] p-4 flex flex-col justify-between">
-                  <span className="label-overline">This summer</span>
+                  <span className="label-overline">Live · Job Bank Canada</span>
                   <div>
-                    <div className="font-display font-black text-2xl leading-none">300+</div>
-                    <div className="text-xs font-bold mt-1">paid placements waiting</div>
+                    <div data-testid="hero-live-jobs-count" className="font-display font-black text-2xl leading-none">{liveCount === null ? "…" : liveCount}</div>
+                    <div className="text-xs font-bold mt-1">Halifax openings on jobbank.gc.ca right now</div>
                   </div>
                 </div>
                 <div className="aspect-square brutal-border brutal-shadow overflow-hidden">
@@ -131,7 +133,7 @@ export default function LandingPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: Briefcase, title: "Programs Directory", desc: "Filter by age, neighbourhood, category. Apply directly to YouthWorx, BBI, LEAD & more.", to: "/programs", bg: "bg-[#FFD100]" },
+              { icon: Briefcase, title: "Programs Directory", desc: "Filter by age, neighbourhood, category. Links straight to each program's official application page.", to: "/programs", bg: "bg-[#FFD100]" },
               { icon: MapPin, title: "Halifax Job Board", desc: "Curated jobs that hire 15–30 year-olds. With deadlines & wages up front.", to: "/jobs", bg: "bg-white" },
               { icon: FileText, title: "Resume Builder", desc: "Form-based templates + AI bullet-point assistant. Export PDF in one click.", to: "/resume", bg: "bg-[#0055A4] text-white" },
               { icon: Calendar, title: "Events & Workshops", desc: "Pitch nights, job fairs, free skill-ups. RSVP and we'll remember.", to: "/events", bg: "bg-white" },
@@ -196,8 +198,9 @@ export default function LandingPage() {
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
           <div className="flex items-end justify-between flex-wrap gap-4 mb-10">
             <div>
-              <span className="label-overline text-[#FFD100]">/03 Hot list</span>
-              <h2 className="font-display font-black tracking-tighter text-4xl sm:text-5xl mt-2">Jobs hiring this week.</h2>
+              <span className="label-overline text-[#FFD100]">/03 Spotlight roles</span>
+              <h2 className="font-display font-black tracking-tighter text-4xl sm:text-5xl mt-2">Hand-picked openings.</h2>
+              <p className="mt-2 text-sm text-white/80 max-w-xl">Curated from employers' public careers pages, with closing dates shown. The full live Job Bank feed is on the Jobs page.</p>
             </div>
             <Link to="/jobs" className="bg-[#FFD100] text-black brutal-border brutal-shadow brutal-press px-4 py-2 font-display font-bold uppercase text-sm">
               View all jobs →

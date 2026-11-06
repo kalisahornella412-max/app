@@ -7,6 +7,7 @@ load_dotenv(ROOT_DIR / ".env")
 
 import os
 import re
+import hmac
 import logging
 import secrets
 import uuid
@@ -16,15 +17,17 @@ from typing import List, Optional
 import bcrypt
 import jwt as pyjwt
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, BackgroundTasks
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
 
 from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS
 from jobbank_scraper import fetch_live_jobs
+from emailer import send_email, closing_soon_html
 
 JWT_ALGORITHM = "HS256"
+APP_STATUSES = ("saved", "applied", "interviewed", "hired")
 
 
 # ---------- Logging ----------
@@ -92,6 +95,7 @@ def serialize_user(u: dict) -> dict:
         "email": u["email"],
         "name": u.get("name", ""),
         "role": u.get("role", "user"),
+        "email_reminders": u.get("email_reminders", True),
         "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else u.get("created_at"),
     }
 
@@ -268,6 +272,29 @@ async def login(payload: LoginIn, response: Response, request: Request):
 
 @api.post("/auth/logout")
 async def logout(response: Response):
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/")
+    return {"ok": True}
+
+
+class PreferencesIn(BaseModel):
+    email_reminders: bool
+
+
+@api.patch("/me/preferences")
+async def update_preferences(payload: PreferencesIn, user: dict = Depends(get_current_user)):
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {"email_reminders": payload.email_reminders}})
+    user["email_reminders"] = payload.email_reminders
+    return serialize_user(user)
+
+
+@api.delete("/me")
+async def delete_my_account(response: Response, user: dict = Depends(get_current_user)):
+    """User-initiated permanent deletion of their account and everything tied to it."""
+    uid = str(user["_id"])
+    for coll in (db.resumes, db.cover_letters, db.saved_jobs, db.saved_programs, db.rsvps, db.digest_log):
+        await coll.delete_many({"user_id": uid})
+    await db.users.delete_one({"_id": user["_id"]})
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("refresh_token", path="/")
     return {"ok": True}
@@ -524,15 +551,42 @@ async def unsave_program(program_id: str, user: dict = Depends(get_current_user)
 @api.get("/me/saved-programs")
 async def my_saved_programs(user: dict = Depends(get_current_user)):
     saved = await db.saved_programs.find({"user_id": str(user["_id"])}, {"_id": 0}).to_list(500)
-    ids = [s["program_id"] for s in saved]
+    status_by_id = {s["program_id"]: s.get("status", "saved") for s in saved}
     obj_ids = []
-    for x in ids:
+    for x in status_by_id:
         try:
             obj_ids.append(ObjectId(x))
         except Exception:
             pass
     docs = await db.programs.find({"_id": {"$in": obj_ids}}).to_list(500)
-    return [_serialize_doc(d) for d in docs]
+    out = []
+    for d in docs:
+        item = _serialize_doc(d)
+        item["status"] = status_by_id.get(item["id"], "saved")
+        out.append(item)
+    return out
+
+
+class StatusIn(BaseModel):
+    status: str
+
+
+def _check_status(status: str) -> str:
+    if status not in APP_STATUSES:
+        raise HTTPException(400, f"status must be one of {', '.join(APP_STATUSES)}")
+    return status
+
+
+@api.patch("/saved/programs/{program_id}/status")
+async def set_program_status(program_id: str, payload: StatusIn, user: dict = Depends(get_current_user)):
+    status = _check_status(payload.status)
+    res = await db.saved_programs.update_one(
+        {"user_id": str(user["_id"]), "program_id": program_id},
+        {"$set": {"status": status, "status_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Saved program not found")
+    return {"ok": True, "status": status}
 
 
 # ---------- Saved Jobs (snapshot — live Job Bank postings are ephemeral) ----------
@@ -545,6 +599,8 @@ class SavedJobIn(BaseModel):
     apply_url: str
     source: str = "Job Bank"
     posted_at: Optional[str] = None
+    deadline: Optional[str] = None
+    description: Optional[str] = None
 
 
 @api.post("/saved/jobs")
@@ -553,10 +609,22 @@ async def save_job(payload: SavedJobIn, user: dict = Depends(get_current_user)):
     doc.update({"user_id": str(user["_id"]), "created_at": datetime.now(timezone.utc).isoformat()})
     await db.saved_jobs.update_one(
         {"user_id": str(user["_id"]), "job_id": payload.job_id},
-        {"$set": doc},
+        {"$set": doc, "$setOnInsert": {"status": "saved"}},
         upsert=True,
     )
     return {"ok": True}
+
+
+@api.patch("/saved/jobs/{job_id}/status")
+async def set_job_status(job_id: str, payload: StatusIn, user: dict = Depends(get_current_user)):
+    status = _check_status(payload.status)
+    res = await db.saved_jobs.update_one(
+        {"user_id": str(user["_id"]), "job_id": job_id},
+        {"$set": {"status": status, "status_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Saved job not found")
+    return {"ok": True, "status": status}
 
 
 @api.delete("/saved/jobs/{job_id}")
@@ -568,6 +636,8 @@ async def unsave_job(job_id: str, user: dict = Depends(get_current_user)):
 @api.get("/me/saved-jobs")
 async def my_saved_jobs(user: dict = Depends(get_current_user)):
     docs = await db.saved_jobs.find({"user_id": str(user["_id"])}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    for d in docs:
+        d.setdefault("status", "saved")
     return docs
 
 
@@ -678,6 +748,207 @@ async def ai_summary(payload: AISummaryIn, _user: dict = Depends(get_current_use
         logger.error(f"LLM error: {e}")
         raise HTTPException(502, "AI request failed")
     return {"summary": str(text).strip().strip('"')}
+
+
+# ---------- Cover Letters ----------
+class CoverLetterGenIn(BaseModel):
+    resume_id: str
+    job_title: str
+    employer: Optional[str] = ""
+    job_description: Optional[str] = ""
+    job_id: Optional[str] = None
+    apply_url: Optional[str] = None
+
+
+class CoverLetterUpdateIn(BaseModel):
+    content: str
+    title: Optional[str] = None
+
+
+def _resume_text(r: dict) -> str:
+    exp = "\n".join(
+        f"- {e.get('role','')} at {e.get('company','')} ({e.get('start','')}–{e.get('end','')}): " + "; ".join(e.get("bullets") or [])
+        for e in r.get("experience") or []
+    )
+    edu = "\n".join(f"- {e.get('program','')} — {e.get('school','')}" for e in r.get("education") or [])
+    return (
+        f"Name: {r.get('full_name','')}\nHeadline: {r.get('headline','')}\nLocation: {r.get('location','')}\n"
+        f"Summary: {r.get('summary','')}\nSkills: {', '.join(r.get('skills') or [])}\nExperience:\n{exp or '- none yet'}\nEducation:\n{edu or '- none listed'}"
+    )
+
+
+@api.post("/cover-letters/generate")
+async def generate_cover_letter(payload: CoverLetterGenIn, user: dict = Depends(get_current_user)):
+    resume = await db.resumes.find_one({"_id": ObjectId(payload.resume_id), "user_id": str(user["_id"])})
+    if not resume:
+        raise HTTPException(404, "Resume not found")
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception as e:
+        logger.error(f"emergentintegrations import failed: {e}")
+        raise HTTPException(500, "AI assistant unavailable")
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "EMERGENT_LLM_KEY not configured")
+    system = (
+        "You are a career coach writing cover letters for Halifax, Nova Scotia youth and newcomers to Canada. "
+        "Write a complete, ready-to-send cover letter in Canadian English: 3 short paragraphs, 180-260 words, "
+        "warm but professional, first person, no clichés, no placeholders in square brackets. "
+        "Use only facts from the resume — never invent experience. Open with 'Dear Hiring Manager,' and close with "
+        "'Sincerely,' followed by the candidate's name on its own line. Return ONLY the letter text."
+    )
+    chat = LlmChat(api_key=api_key, session_id=f"cover-{uuid.uuid4()}", system_message=system).with_model("anthropic", "claude-sonnet-4-6")
+    prompt = (
+        f"JOB\nTitle: {payload.job_title}\nEmployer: {payload.employer or 'the employer'}\n"
+        f"Posting details: {payload.job_description or 'not provided'}\n\nCANDIDATE RESUME\n{_resume_text(resume)}"
+    )
+    try:
+        text = await chat.send_message(UserMessage(text=prompt))
+    except Exception as e:
+        logger.error(f"LLM error: {e}")
+        raise HTTPException(502, "AI request failed")
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "user_id": str(user["_id"]),
+        "resume_id": payload.resume_id,
+        "title": f"{payload.job_title}" + (f" — {payload.employer}" if payload.employer else ""),
+        "job_title": payload.job_title,
+        "employer": payload.employer or "",
+        "job_id": payload.job_id,
+        "apply_url": payload.apply_url,
+        "content": str(text).strip(),
+        "created_at": now,
+        "updated_at": now,
+    }
+    res = await db.cover_letters.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return _serialize_doc(doc)
+
+
+@api.get("/cover-letters")
+async def list_cover_letters(user: dict = Depends(get_current_user)):
+    docs = await db.cover_letters.find({"user_id": str(user["_id"])}).sort("updated_at", -1).to_list(200)
+    return [_serialize_doc(d) for d in docs]
+
+
+@api.put("/cover-letters/{letter_id}")
+async def update_cover_letter(letter_id: str, payload: CoverLetterUpdateIn, user: dict = Depends(get_current_user)):
+    update = {"content": payload.content, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if payload.title:
+        update["title"] = payload.title
+    res = await db.cover_letters.update_one({"_id": ObjectId(letter_id), "user_id": str(user["_id"])}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Cover letter not found")
+    return _serialize_doc(await db.cover_letters.find_one({"_id": ObjectId(letter_id)}))
+
+
+@api.delete("/cover-letters/{letter_id}")
+async def delete_cover_letter(letter_id: str, user: dict = Depends(get_current_user)):
+    await db.cover_letters.delete_one({"_id": ObjectId(letter_id), "user_id": str(user["_id"])})
+    return {"ok": True}
+
+
+# ---------- Closing-soon digest (daily cron) ----------
+def _parse_dt(s: Optional[str]) -> Optional[datetime]:
+    if not s:
+        return None
+    try:
+        d = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+async def run_closing_soon_digest(run_id: str) -> dict:
+    now = datetime.now(timezone.utc)
+    horizon = now + timedelta(days=7)
+    today = now.date().isoformat()
+    dashboard_url = f"{os.environ.get('FRONTEND_URL', '').rstrip('/')}/dashboard"
+    saved = await db.saved_jobs.find({"deadline": {"$ne": None}, "status": {"$ne": "hired"}}, {"_id": 0}).to_list(5000)
+    by_user: dict[str, list] = {}
+    for s in saved:
+        d = _parse_dt(s.get("deadline"))
+        if d and now <= d <= horizon:
+            s["closes_label"] = d.strftime("%a %b %d")
+            by_user.setdefault(s["user_id"], []).append(s)
+    sent = skipped = failed = 0
+    for user_id, jobs in by_user.items():
+        already = await db.digest_log.find_one({"user_id": user_id, "day": today})
+        if already:
+            skipped += 1
+            continue
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            user = None
+        if not user:
+            continue
+        if user.get("email_reminders", True) is False:
+            skipped += 1
+            continue
+        jobs.sort(key=lambda j: j["deadline"])
+        try:
+            await send_email(
+                to=user["email"],
+                subject=f"{len(jobs)} saved job{'s' if len(jobs) != 1 else ''} closing this week",
+                html=closing_soon_html(name=(user.get("name") or "there").split(" ")[0], jobs=jobs, dashboard_url=dashboard_url),
+            )
+            await db.digest_log.insert_one({"user_id": user_id, "day": today, "run_id": run_id, "count": len(jobs), "sent_at": now.isoformat()})
+            sent += 1
+        except Exception as e:
+            failed += 1
+            logger.error(f"digest send failed for {user_id}: {e}")
+    result = {"sent": sent, "skipped": skipped, "failed": failed, "users_with_closing_jobs": len(by_user)}
+    await db.cron_runs.update_one({"run_id": run_id}, {"$set": {"finished_at": datetime.now(timezone.utc).isoformat(), "result": result}})
+    logger.info(f"closing-soon digest {run_id}: {result}")
+    return result
+
+
+@api.post("/cron/closing-soon-digest")
+async def cron_closing_soon(request: Request, background: BackgroundTasks):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    auth = request.headers.get("authorization", "")
+    expected = os.environ["WEBHOOK_CRON_SECRET"]
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    if not token or not hmac.compare_digest(token, expected):
+        raise HTTPException(401, "Unauthorized")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Invalid body")
+    run_id = request.headers.get("x-webhook-id") or body.get("run_id") or str(uuid.uuid4())
+    existing = await db.cron_runs.find_one({"run_id": run_id})
+    if existing:
+        return {"accepted": True, "duplicate": True}
+    await db.cron_runs.insert_one({"run_id": run_id, "job": "closing-soon-digest", "started_at": datetime.now(timezone.utc).isoformat()})
+    background.add_task(run_closing_soon_digest, run_id)
+    return {"accepted": True}
+
+
+@api.post("/me/closing-soon-digest/preview")
+async def send_my_digest_now(user: dict = Depends(get_current_user)):
+    """Lets a signed-in user email themselves their own closing-soon list on demand."""
+    now = datetime.now(timezone.utc)
+    horizon = now + timedelta(days=7)
+    saved = await db.saved_jobs.find({"user_id": str(user["_id"]), "deadline": {"$ne": None}, "status": {"$ne": "hired"}}, {"_id": 0}).to_list(500)
+    jobs = []
+    for s in saved:
+        d = _parse_dt(s.get("deadline"))
+        if d and now <= d <= horizon:
+            s["closes_label"] = d.strftime("%a %b %d")
+            jobs.append(s)
+    if not jobs:
+        raise HTTPException(400, "None of your saved jobs close in the next 7 days")
+    jobs.sort(key=lambda j: j["deadline"])
+    dashboard_url = f"{os.environ.get('FRONTEND_URL', '').rstrip('/')}/dashboard"
+    email_id = await send_email(
+        to=user["email"],
+        subject=f"{len(jobs)} saved job{'s' if len(jobs) != 1 else ''} closing this week",
+        html=closing_soon_html(name=(user.get("name") or "there").split(" ")[0], jobs=jobs, dashboard_url=dashboard_url),
+    )
+    return {"ok": True, "count": len(jobs), "email_id": email_id}
 
 
 # ---------- Health & Stats ----------

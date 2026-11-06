@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { Sparkles, Plus, Trash2, Save, Printer, Lock, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import ResumeNextSteps from "../components/ResumeNextSteps";
 
 const DRAFT_KEY = "hyh_resume_draft";
 
@@ -365,7 +366,8 @@ export default function ResumeBuilderPage() {
 
         {/* PREVIEW */}
         <div className="lg:col-span-5 print:col-span-12">
-          <div className="lg:sticky lg:top-24">
+          <div className="lg:sticky lg:top-24 space-y-4">
+            {authed && resume.id && <ResumeNextSteps resumeId={resume.id} />}
             <span className="label-overline print:hidden">Live preview</span>
             <ResumePreview resume={resume} />
           </div>

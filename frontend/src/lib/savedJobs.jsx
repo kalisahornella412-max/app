@@ -36,6 +36,8 @@ export function useSavedJobs() {
         apply_url: job.apply_url,
         source: job.source || "Halifax Youth Hub",
         posted_at: job.posted_at || null,
+        deadline: job.deadline || null,
+        description: job.short_description || job.description || null,
       });
       setSavedIds((s) => new Set(s).add(id));
       toast.success("Job saved to dashboard");

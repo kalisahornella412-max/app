@@ -12,8 +12,9 @@ export default function Footer() {
             <span className="font-display font-black text-2xl tracking-tighter">HALIFAX<span className="text-[#FFD100]">YOUTH</span>HUB</span>
           </div>
           <p className="text-white/70 max-w-md leading-relaxed">
-            One door to every Halifax program, summer job, mentor and event built for youth.
-            Backed by the people doing the work — YouthWorx, BBI, LEAD, YMCA and more.
+            One door to Halifax programs, jobs, mentors and events built for youth and newcomers.
+            An independent community directory — every listing links to the organization's official page.
+            Halifax Youth Hub is not affiliated with or endorsed by the organizations listed.
           </p>
         </div>
         <div>
@@ -23,14 +24,15 @@ export default function Footer() {
             <li><Link to="/jobs" className="hover:text-[#FFD100]">Jobs</Link></li>
             <li><Link to="/events" className="hover:text-[#FFD100]">Events</Link></li>
             <li><Link to="/resume" className="hover:text-[#FFD100]">Resume Builder</Link></li>
+            <li><Link to="/privacy" data-testid="footer-privacy-link" className="hover:text-[#FFD100]">Privacy Policy</Link></li>
           </ul>
         </div>
         <div>
-          <p className="label-overline mb-3 text-[#FFD100]">Partners</p>
+          <p className="label-overline mb-3 text-[#FFD100]">Programs we list</p>
           <ul className="space-y-2 font-display font-semibold text-sm text-white/80">
-            <li>YouthWorx Halifax</li>
+            <li>Youth Worx (HRM Parks & Recreation)</li>
             <li>Black Business Initiative</li>
-            <li>HRM LEAD</li>
+            <li>HRM Youth Leadership Program</li>
             <li>YMCA Halifax/Dartmouth</li>
             <li>Phoenix Youth · ISANS</li>
           </ul>

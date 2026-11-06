@@ -66,6 +66,9 @@ export default function RegisterPage() {
           >
             {loading ? "Creating…" : "Create account"}
           </button>
+          <p data-testid="register-privacy-note" className="text-xs text-black/60 leading-snug">
+            By creating an account you agree to our <Link to="/privacy" className="underline font-bold">Privacy Policy</Link>. We only use your details to run your account, resumes and reminders — never sold, never used for ads. Under 16? Please check with a parent or guardian first.
+          </p>
         </form>
 
         <p className="mt-6 text-sm text-center">

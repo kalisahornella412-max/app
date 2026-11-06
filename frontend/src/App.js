@@ -20,6 +20,7 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import ResumeBuilderPage from "./pages/ResumeBuilderPage";
 import AdminPage from "./pages/AdminPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/resume" element={<ResumeBuilderPage />} />
                 <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+                <Route path="/privacy" element={<PrivacyPage />} />
               </Routes>
             </main>
             <Footer />

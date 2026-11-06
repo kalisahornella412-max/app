@@ -5,6 +5,7 @@ import { Search, Briefcase, MapPin, Calendar, Clock } from "lucide-react";
 import JobFeeds from "../components/JobFeeds";
 import LiveJobs from "../components/LiveJobs";
 import { useSavedJobs, SaveJobButton } from "../lib/savedJobs";
+import { ClosingBadge } from "../lib/applications";
 
 const postedAgo = (iso) => {
   if (!iso) return null;
@@ -98,6 +99,7 @@ export default function JobsPage() {
                     {j.posted_at && (
                       <span data-testid={`job-posted-${j.id}`} className="label-overline text-[#0055A4] inline-flex items-center gap-1"><Clock size={10} strokeWidth={3} />{postedAgo(j.posted_at)}</span>
                     )}
+                    <ClosingBadge deadline={j.deadline} testId={`job-closing-${j.id}`} />
                   </div>
                   <h3 className="font-display font-black text-2xl mt-1 tracking-tight leading-tight">{j.title}</h3>
                   <p className="font-display font-bold text-black/70 mt-1">{j.employer}</p>

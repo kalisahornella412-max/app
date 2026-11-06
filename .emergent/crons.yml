@@ -1,0 +1,9 @@
+crons:
+  - name: closing-soon-digest
+    description: "Emails each user a daily 9am (Halifax) digest of their saved jobs closing within 7 days"
+    cron: "0 9 * * *"
+    timezone: "America/Halifax"
+    endpoint: "{{BASE_URL}}/api/cron/closing-soon-digest"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true
