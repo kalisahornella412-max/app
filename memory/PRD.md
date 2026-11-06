@@ -52,9 +52,13 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ **Credibility fixes (user-requested)** — footer "Partners" → "Programs we list" + non-affiliation disclaimer; "300+ paid placements" replaced with live Job Bank count; "Jobs hiring this week" → "Hand-picked openings" with sourcing note; Youth Worx corrected to ages 16–24 / April & October intakes / next cohort Spring 2027 (checked halifax.ca 2026-11-06); fictional "LEAD" replaced with real HRM Youth Leadership Program (13+, summer); program detail shows accuracy note + `source_checked`; "Apply on partner site" → "Apply on official site"
 - Env added: `EMERGENT_EMAIL_KEY`, `EMAIL_FROM_NAME`, `WEBHOOK_CRON_SECRET`; `FRONTEND_URL` updated to current preview URL (used in digest links — set to production domain on deploy)
 
+## Update (2026-11-06, evening)
+- ✅ **Interview Prep Coach** — unlocked when a saved job is marked Interviewed/Hired (gated in UI *and* backend). `POST /api/interview-prep/questions` → 8 tailored Qs with tip + sample answer (cached in `interview_preps`); `POST /api/interview-prep/chat` interactive mock (one Q at a time, feedback, summary after 6 answers, sessions in `interview_sessions`, 2000-char answers, no turns after complete); `GET /api/interview-prep/{job_id}`; `DELETE /api/interview-prep/sessions/{id}`. UI: `InterviewPrepDialog` (two tabs) via "Prep" button on dashboard cards
+- ✅ **All 27 programs re-verified** against official pages (web research 2026-11-06) and stamped `source_checked`; corrected: BBI → Business is Jammin' (8–35, programs URL), NSTAY (13–24, sexual-exploitation support), Ready 4 Launch (15–30, 4+10 weeks), YMCA youth (Outreach 13–21 / LEAP 15–30 / EDGE 18–26), Phoenix (16–24 core, 11–24 therapy), Job Junction moved to 7001 Mumford Rd + Bedford, Team Work Co-op, SKILL (student status not age), SWPP (50%/$5,000 since Apr 2026), NSNP 4 streams (Feb 18 2026), ISANS 14,500+ / 170+ countries (2025–26), LINC eligibility + Language for Youth 16–30, ECE Pathway streams, Veith House schedule, YWCA Financial Literacy URL, UACWA address, AIP de-specified
+- ✅ Privacy contact `kalisahornella412@gmail.com` on /privacy (mailto) and as `EMAIL_REPLY_TO` for digest replies
+- ✅ Program accuracy note restyled for contrast; mock-interview restart race fixed; optimistic answer bubble
+
 ## Backlog (P1)
-- Verify remaining 25 program entries against official pages (Youth Worx + HRM Youth Leadership done); add `source_checked` to each
-- Privacy contact email: user to supply a real inbox for privacy requests (policy currently says "via the contact details shared with partner organizations")
 - Email notifications for RSVPs (Resend already wired)
 - Direct PDF generation (server-side via reportlab) so styling is consistent across browsers
 - Per-user rate limit on `/api/resumes/ai-assist` (currently unlimited)

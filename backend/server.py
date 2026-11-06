@@ -857,7 +857,7 @@ class InterviewQuestionsIn(BaseModel):
 class InterviewChatIn(BaseModel):
     job_id: str
     session_id: Optional[str] = None
-    message: Optional[str] = None
+    message: Optional[str] = Field(default=None, max_length=2000)
     resume_id: Optional[str] = None
 
 
@@ -877,6 +877,8 @@ async def _interview_context(user: dict, job_id: str, resume_id: Optional[str]) 
     job = await db.saved_jobs.find_one({"user_id": str(user["_id"]), "job_id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(404, "Saved job not found")
+    if job.get("status") not in ("interviewed", "hired"):
+        raise HTTPException(400, "Mark this job as Interviewed to unlock interview prep")
     resume = None
     if resume_id:
         resume = await db.resumes.find_one({"_id": ObjectId(resume_id), "user_id": str(user["_id"])})
@@ -951,6 +953,8 @@ async def interview_chat(payload: InterviewChatIn, user: dict = Depends(get_curr
         session = await db.interview_sessions.find_one({"session_id": payload.session_id, "user_id": uid}, {"_id": 0})
     if not session:
         session = {"session_id": str(uuid.uuid4()), "user_id": uid, "job_id": payload.job_id, "job_title": job["title"], "messages": [], "created_at": now, "updated_at": now}
+    if session.get("complete"):
+        raise HTTPException(400, "This mock interview is finished — restart to run it again")
     history = session["messages"]
     if payload.message and payload.message.strip():
         history.append({"role": "user", "content": payload.message.strip(), "at": now})
@@ -960,7 +964,7 @@ async def interview_chat(payload: InterviewChatIn, user: dict = Depends(get_curr
     chat = _llm_chat(MOCK_SYSTEM, f"interview-chat-{session['session_id']}-{len(history)}")
     from emergentintegrations.llm.chat import UserMessage
     try:
-        reply = str(await chat.send_message(UserMessage(text=prompt))).strip().replace("**", "")
+        reply = re.sub(r"\*+", "", str(await chat.send_message(UserMessage(text=prompt)))).strip()
     except Exception as e:
         logger.error(f"LLM error: {e}")
         raise HTTPException(502, "AI request failed")

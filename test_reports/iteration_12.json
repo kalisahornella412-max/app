@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 12: Interview Prep Coach (questions + mock interview), 27-program re-verification, privacy contact email, light regression. Backend 10/10 pytest pass (real Claude calls: questions ~25s, chat ~5-10s). Frontend: Prep button gating by status (saved -> hidden, interviewed -> shown), dialog, 8 cached questions with expandable tip + sample answer, mock reset + answer/feedback flow, privacy mailto, BBI detail (8-35 years, accuracy note 'checked 2026-11-06') all verified. No functional bugs found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/interview-prep/chat", "issue": "Only '**' is stripped; single-asterisk markdown italics still come through (e.g. 'try explaining *why* the library matters') and display as literal asterisks in the transcript."},
+      {"endpoint": "POST /api/interview-prep/questions & /chat", "issue": "The backend doesn't check that the saved job's status is 'interviewed'/'hired'. The gate exists only in the UI, so any saved job can use the AI endpoints by calling the API directly."},
+      {"endpoint": "POST /api/interview-prep/chat", "issue": "No max length on 'message', and no limit on how many turns a session can have after 'complete'. Long input or extra turns run up LLM cost."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Mock interview restart", "issue": "restart() waits for the DELETE before clearing the session, so the old transcript and the enabled Send button stay visible during the delete. restart() then calls send(null) with a stale closure that still holds the old session_id (the backend copes by creating a new session). If the user sends an answer in that gap, it goes to the deleted session and can recreate it. Fix: setSession(null) and lock the input before awaiting the delete, and pass session_id null explicitly.", "affected_selectors": ["[data-testid=mock-reset]", "[data-testid=mock-send]"]}
+    ],
+    "design_issues": [
+      {"screen": "Mock interview", "issues": ["The user's answer bubble appears only after the LLM responds (not added optimistically). Fine, but it would feel quicker if added right away."]},
+      {"screen": "Program detail Quick Facts", "issues": ["The accuracy note text is very small and low-contrast on the yellow card."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration12_interview_prep_programs.py", "/app/test_reports/pytest/iteration12.xml"],
+  "action_items": [
+    "Optional: strip single '*' markdown from mock-interview replies (or render markdown)",
+    "Optional: enforce the interviewed/hired status gate on the backend interview-prep endpoints",
+    "Optional: fix the restart race in InterviewPrepDialog (clear the session and disable input before awaiting DELETE; send with session_id null)",
+    "Optional: add max_length to InterviewChatIn.message"
+  ],
+  "critical_code_review_comments": [
+    "The backend interview endpoints have no status gate (UI-only).",
+    "InterviewPrepDialog.restart uses a stale session closure in send(null).",
+    "DELETE /interview-prep/sessions/{id} always returns ok, even when no session matches (acceptable)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration12_interview_prep_programs.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None. The delivered@resend.dev interview_preps questions were regenerated and its mock session was reset and replaced by a new 3-message session. Its saved job status is confirmed back at 'interviewed'.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Saved job id 6aedd764dc889e8f50047e56 (Library Page), status interviewed. BBI program id 69fc0af42827bd969ef578af. The 401 console errors on public pages come from the anonymous /auth/me check (expected). Saved programs list is empty for delivered@resend.dev, so the program-status select was not checked visually (it is still in the code at DashboardPage.jsx:166). Run pytest with -p no:xdist so the LLM tests run in order."
+}

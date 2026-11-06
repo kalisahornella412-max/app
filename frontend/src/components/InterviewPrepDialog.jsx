@@ -34,19 +34,23 @@ export default function InterviewPrepDialog({ open, onOpenChange, job }) {
     finally { setLoading(false); }
   }
 
-  async function send(message) {
+  async function send(message, sessionId = session?.session_id || null) {
     setChatLoading(true);
+    if (message) setSession((s) => ({ ...(s || { messages: [] }), messages: [...(s?.messages || []), { role: "user", content: message, at: new Date().toISOString() }] }));
     try {
-      const { data } = await api.post("/interview-prep/chat", { job_id: job.job_id, session_id: session?.session_id || null, message: message || null });
+      const { data } = await api.post("/interview-prep/chat", { job_id: job.job_id, session_id: sessionId, message: message || null });
       setSession(data); setAnswer("");
-    } catch (e) { toast.error(e.response?.data?.detail || "AI request failed"); }
-    finally { setChatLoading(false); }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "AI request failed");
+      if (message) setSession((s) => s ? { ...s, messages: s.messages.slice(0, -1) } : s);
+    } finally { setChatLoading(false); }
   }
 
   async function restart() {
-    if (session?.session_id) await api.delete(`/interview-prep/sessions/${session.session_id}`).catch(() => {});
-    setSession(null);
-    send(null);
+    const old = session?.session_id;
+    setSession(null); setAnswer(""); setChatLoading(true);
+    if (old) await api.delete(`/interview-prep/sessions/${old}`).catch(() => {});
+    await send(null, null);
   }
 
   const messages = session?.messages || [];
@@ -113,8 +117,8 @@ export default function InterviewPrepDialog({ open, onOpenChange, job }) {
                   <button onClick={restart} data-testid="mock-restart" className="bg-[#FFD100] brutal-border brutal-press px-3 py-2 font-display font-bold text-xs uppercase inline-flex items-center gap-1"><RotateCcw size={12} strokeWidth={3} />Run it again</button>
                 ) : (
                   <form onSubmit={(e) => { e.preventDefault(); if (answer.trim()) send(answer); }} className="flex gap-2">
-                    <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} data-testid="mock-answer" rows={2} placeholder="Type your answer…"
-                      className="flex-1 bg-white brutal-border px-3 py-2 text-sm focus:outline-none focus:bg-[#FFFCEA]" />
+                    <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} data-testid="mock-answer" rows={2} maxLength={2000} disabled={chatLoading} placeholder="Type your answer…"
+                      className="flex-1 bg-white brutal-border px-3 py-2 text-sm focus:outline-none focus:bg-[#FFFCEA] disabled:opacity-60" />
                     <button type="submit" disabled={chatLoading || !answer.trim()} data-testid="mock-send" className="bg-black text-white brutal-border brutal-press px-3 font-display font-bold text-xs uppercase inline-flex items-center gap-1 disabled:opacity-50"><Send size={12} strokeWidth={3} />Send</button>
                     <button type="button" onClick={restart} title="Restart" data-testid="mock-reset" className="bg-white brutal-border brutal-press px-2"><RotateCcw size={12} strokeWidth={3} /></button>
                   </form>

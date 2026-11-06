@@ -89,7 +89,7 @@ export default function ProgramDetailPage() {
                   Apply on official site <ExternalLink size={16} strokeWidth={3} />
                 </a>
               )}
-              <p data-testid="program-accuracy-note" className="mt-3 text-[11px] leading-snug text-black/60">
+              <p data-testid="program-accuracy-note" className="mt-3 text-xs leading-snug text-black/80 bg-white brutal-border px-3 py-2">
                 Summarized from {p.organization}'s public website{p.source_checked ? ` (checked ${p.source_checked})` : ""}. Eligibility and dates can change — confirm on the official page before applying. Halifax Youth Hub is not affiliated with this organization.
               </p>
               <button
