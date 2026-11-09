@@ -69,14 +69,14 @@ export default function LandingPage() {
 
               <div className="mt-10 grid grid-cols-3 gap-3 max-w-lg">
                 {[
-                  { n: stats.programs, l: "Programs" },
-                  { n: stats.jobs, l: "Open Jobs" },
-                  { n: stats.events, l: "Events" },
-                ].map((s, i) => (
-                  <div key={i} className="brutal-border brutal-shadow-sm bg-white p-4">
+                  { n: stats.programs, l: "Programs", to: "/programs", id: "stat-programs" },
+                  { n: stats.jobs, l: "Open Jobs", to: "/jobs", id: "stat-jobs" },
+                  { n: stats.events, l: "Events", to: "/events", id: "stat-events" },
+                ].map((s) => (
+                  <Link key={s.id} to={s.to} data-testid={s.id} className="brutal-border brutal-shadow-sm brutal-press bg-white p-4 block hover:bg-[#FFD100] transition-colors group">
                     <div className="font-display font-black text-3xl">{s.n}</div>
-                    <div className="label-overline mt-1">{s.l}</div>
-                  </div>
+                    <div className="label-overline mt-1 flex items-center justify-between">{s.l}<span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span></div>
+                  </Link>
                 ))}
               </div>
             </div>

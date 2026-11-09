@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import AudienceBar from "./components/AudienceBar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
 
 import LandingPage from "./pages/LandingPage";
 import ProgramsPage from "./pages/ProgramsPage";
@@ -28,6 +29,7 @@ function App() {
       <AuthProvider>
         <AudienceProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <Navbar />
             <AudienceBar />
             <main>
