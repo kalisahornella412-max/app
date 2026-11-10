@@ -834,6 +834,169 @@ async def delete_listing(listing_id: str, _admin: dict = Depends(require_admin))
     return {"ok": True}
 
 
+# ---------- Google Form → Sheet auto-import (CSV of the responses sheet) ----------
+class SheetImportIn(BaseModel):
+    sheet_url: Optional[str] = None
+    save: bool = True
+
+
+_COL_KEYS = {
+    "name": ("business", "organization", "organisation", "name of"),
+    "category": ("category",),
+    "short_description": ("short description", "description", "what do you", "tell us", "about"),
+    "instagram": ("instagram",),
+    "website": ("website",),
+    "contact": ("contact", "email", "phone"),
+    "neighbourhood": ("neighbourhood", "neighborhood", "service area", "location", "area"),
+    "booking_url": ("booking", "order", "registration", "register"),
+    "image_url": ("logo", "image", "photo"),
+}
+
+
+def _sheet_csv_url(url: str) -> str:
+    url = url.strip()
+    m = re.search(r"docs\.google\.com/spreadsheets/d/(?:e/)?([A-Za-z0-9_-]+)", url)
+    if not m:
+        raise HTTPException(400, "Paste a Google Sheets link (the Form's linked responses sheet)")
+    if "/d/e/" in url:  # 'Publish to web' link
+        return re.sub(r"/pub.*$", "", url) + "/pub?output=csv"
+    gid = re.search(r"[#&?]gid=(\d+)", url)
+    return f"https://docs.google.com/spreadsheets/d/{m.group(1)}/export?format=csv" + (f"&gid={gid.group(1)}" if gid else "")
+
+
+def _map_columns(headers: list[str]) -> dict:
+    mapping: dict = {}
+    for field, keys in _COL_KEYS.items():
+        for i, h in enumerate(headers):
+            hl = h.lower()
+            if any(k in hl for k in keys) and i not in mapping.values():
+                if field == "name" and "name" not in hl:
+                    continue
+                mapping[field] = i
+                break
+    return mapping
+
+
+def _match_category(raw: str) -> str:
+    r = (raw or "").lower()
+    for c in LISTING_CATEGORIES:
+        if c.lower() == r:
+            return c
+    for c, words in {
+        "Beauty & Personal Care": ("beauty", "hair", "barber", "nail", "makeup", "skin", "esthet"),
+        "Photography & Creative Services": ("photo", "video", "graphic", "design", "content", "creative service"),
+        "Restaurants & Food Businesses": ("restaurant", "food", "caf", "bak", "cater", "vendor"),
+        "Arts & Creative Communities": ("art", "dance", "music", "workshop", "cultural"),
+        "Faith & Spiritual Communities": ("faith", "church", "ministry", "spiritual", "mosque", "temple"),
+    }.items():
+        if any(w in r for w in words):
+            return c
+    return LISTING_CATEGORIES[0]
+
+
+@api.get("/admin/listings/import-settings")
+async def get_import_settings(_admin: dict = Depends(require_admin)):
+    doc = await db.settings.find_one({"key": "listing_sheet"}, {"_id": 0})
+    return doc or {"key": "listing_sheet", "sheet_url": None, "last_run": None}
+
+
+async def _do_sheet_import(sheet_url: str) -> dict:
+    import csv, io
+    import httpx
+    csv_url = _sheet_csv_url(sheet_url)
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+            r = await client.get(csv_url)
+        r.raise_for_status()
+        if "<html" in r.text[:500].lower():
+            raise ValueError("html")
+    except Exception:
+        raise HTTPException(400, "Couldn't read the sheet. In Google Sheets use File → Share → Publish to web (CSV), or set link sharing to 'Anyone with the link can view', then paste the link again.")
+    rows = list(csv.reader(io.StringIO(r.text)))
+    if len(rows) < 2:
+        return {"imported": 0, "skipped": 0, "total_rows": 0}
+    mapping = _map_columns(rows[0])
+    if "name" not in mapping:
+        raise HTTPException(400, f"Couldn't find a business/organization name column. Columns seen: {', '.join(rows[0][:12])}")
+    imported = skipped = 0
+    now = datetime.now(timezone.utc).isoformat()
+    for row in rows[1:]:
+        get = lambda f: (row[mapping[f]].strip() if f in mapping and mapping[f] < len(row) else "")
+        name = get("name")
+        if not name:
+            skipped += 1
+            continue
+        slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
+        if await db.listings.find_one({"slug": slug}):
+            skipped += 1
+            continue
+        try:
+            ig = _normalize_instagram(get("instagram") or None)
+        except HTTPException:
+            ig = None
+        def safe_url(v):
+            try:
+                return _check_http_url(v or None, "url")
+            except HTTPException:
+                return None
+        short = get("short_description") or f"{name} — community-submitted listing awaiting details."
+        doc = {
+            "slug": slug, "name": name[:120], "category": _match_category(get("category")),
+            "short_description": short[:400], "description": short if len(short) > 400 else None,
+            "image_url": safe_url(get("image_url")), "instagram": ig,
+            "instagram_url": f"https://www.instagram.com/{ig}/" if ig else None,
+            "website": safe_url(get("website")), "contact": (get("contact") or None),
+            "neighbourhood": get("neighbourhood") or "All HRM", "booking_url": safe_url(get("booking_url")),
+            "tags": ["submitted"], "is_featured": False, "status": "pending", "seeded": False,
+            "source": "google-form", "created_at": now, "updated_at": now,
+        }
+        await db.listings.insert_one(doc)
+        imported += 1
+    return {"imported": imported, "skipped": skipped, "total_rows": len(rows) - 1, "columns": mapping}
+
+
+@api.post("/admin/listings/import-sheet")
+async def import_sheet(payload: SheetImportIn, _admin: dict = Depends(require_admin)):
+    settings = await db.settings.find_one({"key": "listing_sheet"}) or {}
+    sheet_url = payload.sheet_url or settings.get("sheet_url")
+    if not sheet_url:
+        raise HTTPException(400, "No sheet link saved yet")
+    result = await _do_sheet_import(sheet_url)
+    if payload.save:
+        await db.settings.update_one({"key": "listing_sheet"}, {"$set": {"key": "listing_sheet", "sheet_url": sheet_url, "last_run": datetime.now(timezone.utc).isoformat(), "last_result": {"imported": result["imported"], "skipped": result["skipped"]}}}, upsert=True)
+    return result
+
+
+@api.delete("/admin/listings/import-settings")
+async def clear_import_settings(_admin: dict = Depends(require_admin)):
+    await db.settings.update_one({"key": "listing_sheet"}, {"$set": {"sheet_url": None}})
+    return {"ok": True}
+
+
+@api.post("/cron/import-listings")
+async def cron_import_listings(request: Request, background: BackgroundTasks):
+    # Hourly: pull new Google Form responses into pending listings. Ack immediately; work in background.
+    auth = request.headers.get("authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    if not token or not hmac.compare_digest(token, os.environ["WEBHOOK_CRON_SECRET"]):
+        raise HTTPException(401, "Unauthorized")
+    settings = await db.settings.find_one({"key": "listing_sheet"}) or {}
+    if not settings.get("sheet_url"):
+        return {"accepted": True, "skipped": "no sheet configured"}
+
+    async def _run():
+        try:
+            result = await _do_sheet_import(settings["sheet_url"])
+            await db.settings.update_one({"key": "listing_sheet"}, {"$set": {"last_run": datetime.now(timezone.utc).isoformat(), "last_result": {"imported": result["imported"], "skipped": result["skipped"]}}})
+            logger.info(f"listing import: {result}")
+        except Exception as e:
+            logger.error(f"listing import failed: {e}")
+            await db.settings.update_one({"key": "listing_sheet"}, {"$set": {"last_error": str(getattr(e, 'detail', e))[:300], "last_run": datetime.now(timezone.utc).isoformat()}})
+
+    background.add_task(_run)
+    return {"accepted": True}
+
+
 # ---------- Resumes ----------
 @api.get("/resumes")
 async def list_resumes(user: dict = Depends(get_current_user)):

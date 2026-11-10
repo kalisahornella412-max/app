@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Trash2, Plus, Pencil, Star, StarOff, CheckCircle2, EyeOff, X, Instagram } from "lucide-react";
+import SheetImportPanel from "./SheetImportPanel";
 
 const EMPTY = { slug: "", name: "", category: "", short_description: "", description: "", image_url: "", instagram: "", website: "", contact: "", neighbourhood: "All HRM", booking_url: "", tags: [], is_featured: false, status: "approved" };
 
@@ -53,6 +54,7 @@ export default function CommunityAdmin() {
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
+      <SheetImportPanel onImported={reload} />
       <form onSubmit={submit} data-testid="admin-listing-form" className="brutal-border brutal-shadow bg-white p-5 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-display font-black text-xl flex items-center gap-2">{editing ? <Pencil size={18} strokeWidth={3} /> : <Plus size={18} strokeWidth={3} />}{editing ? "Edit Listing" : "Add Listing"}</h3>

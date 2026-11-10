@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAudience } from "../lib/audience";
 import { ArrowRight, Briefcase, FileText, Calendar, Sparkles, MapPin } from "lucide-react";
+import CommunityPicks from "../components/CommunityPicks";
 
 const partners = [
   "YOUTH WORX", "BBI", "HRM YOUTH LEADERSHIP", "YMCA HALIFAX", "PHOENIX YOUTH",
@@ -192,6 +193,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* COMMUNITY PICKS */}
+      <CommunityPicks />
 
       {/* RECENT JOBS */}
       <section className="border-b-2 border-black bg-[#0055A4] text-white">

@@ -8,6 +8,7 @@ import { StatusSelect, ClosingBadge, daysUntil } from "../lib/applications";
 import CoverLetterDialog from "../components/CoverLetterDialog";
 import InterviewPrepDialog from "../components/InterviewPrepDialog";
 import ProgressCard from "../components/ProgressCard";
+import ShareWinDialog from "../components/ShareWinDialog";
 import BackButton from "../components/BackButton";
 
 export default function DashboardPage() {
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState([]);
   const [letterDialog, setLetterDialog] = useState({ open: false, job: null, letter: null });
   const [prepDialog, setPrepDialog] = useState({ open: false, job: null });
+  const [shareDialog, setShareDialog] = useState({ open: false, job: null });
   const [progressKey, setProgressKey] = useState(0);
   const bump = () => setProgressKey((k) => k + 1);
   const [digestSending, setDigestSending] = useState(false);
@@ -146,6 +148,9 @@ export default function DashboardPage() {
                     <StatusSelect kind="jobs" id={j.job_id} value={j.status} testId={`job-status-${j.job_id}`}
                       onChange={(status) => { setSavedJobs((list) => list.map((x) => x.job_id === j.job_id ? { ...x, status } : x)); bump(); }} />
                     <div className="flex items-center gap-2">
+                      {j.status === "hired" && (
+                        <button onClick={() => setShareDialog({ open: true, job: j })} data-testid={`share-win-btn-${j.job_id}`} title="Share your win" className="bg-[#1DB954] text-white brutal-border brutal-press px-2 py-1 font-bold uppercase text-[11px] inline-flex items-center gap-1"><Sparkles size={11} strokeWidth={3} />Share</button>
+                      )}
                       {(j.status === "interviewed" || j.status === "hired") && (
                         <button onClick={() => setPrepDialog({ open: true, job: j })} data-testid={`interview-prep-btn-${j.job_id}`} title="Interview prep" className="bg-[#0055A4] text-white brutal-border brutal-press px-2 py-1 font-bold uppercase text-[11px] inline-flex items-center gap-1"><Sparkles size={11} strokeWidth={3} />Prep</button>
                       )}
@@ -252,6 +257,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <ShareWinDialog open={shareDialog.open} onOpenChange={(o) => setShareDialog((s) => ({ ...s, open: o }))} job={shareDialog.job} name={user?.name} />
       <InterviewPrepDialog open={prepDialog.open} onOpenChange={(o) => { setPrepDialog((s) => ({ ...s, open: o })); if (!o) bump(); }} job={prepDialog.job} />
       <CoverLetterDialog
         open={letterDialog.open}
