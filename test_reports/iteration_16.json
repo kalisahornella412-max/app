@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 16: Community Directory (Phase 1) + Back button. Backend: 10/10 new pytest pass (categories, 15 approved listings featured-first, category/q/featured filters, detail 200/404 incl. invalid ObjectId, admin create pending -> hidden from public/anon 404/admin 200/in admin list, PATCH approve + feature, PUT update, DELETE -> 404, validation 400 for bad category/instagram/status, 422 short description, 401 anon / 403 non-admin, regression programs 27/jobs 17/events 8). Security regressions iter14/15 re-run: 28 passed, 1 xfail. Frontend: /community 6 filter chips, arts -> 3 cards + URL ?category=, search 'nocturne' -> 1, submit link forms.gle target _blank, nocturne IG href correct with _blank, 5 featured badges, no broken images; detail page shows category/@handle/image/IG/website; example-nail-studio shows 'No Instagram listed.'; back -> /community; fresh tab back falls back to /community. Admin community tab: create pending listing via form, pending count badge, pending filter, approve (toast), feature, edit (header 'Edit Listing', rename saved), delete with confirm, programs/jobs/events tabs still render. Back button present on /programs,/jobs,/events,/dashboard,/resume,/privacy,/admin; / -> /programs -> back -> /. Navbar Community link desktop + mobile. Mobile 390: no horizontal overflow on /community and detail; chips wrap.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/community mobile", "issues": ["Category chips wrap into 5 rows (~212px tall) before search; consider a horizontally scrollable chip row on mobile (optional)."]},
+      {"screen": "/admin community tab", "issues": ["Right listings panel has large empty space below the scroll list because it stretches to the form height (cosmetic)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration16_community_listings.py", "/app/test_reports/pytest/pytest_iteration16.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CommunityAdmin.del(): api.delete has no try/catch, so a failed delete gives no error toast.",
+    "CommunityAdmin.startEdit spreads the full listing (id, created_at, instagram_url, seeded) into the PUT payload; Pydantic ignores the extra fields, but it would be cleaner to send only ListingIn fields.",
+    "PUT /api/listings/{id} replaces the whole listing: if a client leaves out is_featured or status, they go back to the defaults (False / 'approved'). The admin UI always sends them, so it is fine today.",
+    "Any admin PATCH/PUT on a seeded listing sets seeded=False, so later seed changes to that listing in seed_data.py will no longer apply (as designed, but worth knowing).",
+    "The community search term is not kept in the URL, unlike category; a minor UX point."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration16_community_listings.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None. QA listings created during tests (QA Nail Studio xxxxx, QA UI Test) were deleted; DB has 15 seeded listings, no QA leftovers.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Community listings tests in test_iteration16_community_listings.py (uses unique QA name suffix + cleanup). Admin listing row testids use slug: admin-listing-{slug}; editing keeps original slug. After login, the app redirects to /dashboard; use the admin-btn to reach /admin."
+}

@@ -37,12 +37,12 @@ export default function CommunityPage() {
           <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">Halifax, by Halifax.</h1>
           <p className="mt-3 max-w-2xl text-black/75">Local barbers, photographers, bakers, dance crews and faith communities — many run straight from Instagram. Browse, tap "View Instagram", and support people from here.</p>
 
-          <div className="mt-8 flex flex-wrap gap-2" data-testid="community-category-filters">
+          <div className="mt-8 flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible [scrollbar-width:none]" data-testid="community-category-filters">
             <button onClick={() => setCategory("all")} data-testid="community-cat-all"
-              className={`brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-xs uppercase ${category === "all" ? "bg-[#FFD100]" : "bg-white"}`}>All</button>
+              className={`shrink-0 brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-xs uppercase ${category === "all" ? "bg-[#FFD100]" : "bg-white"}`}>All</button>
             {categories.map((c) => (
               <button key={c} onClick={() => setCategory(c)} data-testid={`community-cat-${c.split(" ")[0].toLowerCase()}`}
-                className={`brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-xs uppercase ${category === c ? CATEGORY_COLORS[c] : "bg-white"}`}>{c}</button>
+                className={`shrink-0 whitespace-nowrap brutal-border brutal-shadow-sm brutal-press px-3 py-2 font-display font-bold text-xs uppercase ${category === c ? CATEGORY_COLORS[c] : "bg-white"}`}>{c}</button>
             ))}
           </div>
 
