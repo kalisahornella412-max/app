@@ -100,8 +100,8 @@ export default function LandingPage() {
                 </div>
                 <div className="aspect-square brutal-border brutal-shadow overflow-hidden">
                   <img
-                    src="https://images.unsplash.com/photo-1571391756721-0e5caf1d8f80?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIweW91dGglMjB3b3Jrc2hvcHxlbnwwfHx8fDE3NzgxMjUzMDJ8MA&ixlib=rb-4.1.0&q=85"
-                    alt="Youth collaboration" className="w-full h-full object-cover"
+                    src="/brand/hero-youth.jpg"
+                    alt="Halifax youth outside a community centre" data-testid="hero-photo" className="w-full h-full object-cover object-top"
                   />
                 </div>
               </div>

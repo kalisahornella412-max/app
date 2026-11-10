@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 17: tested ANFGC listing + featured picks, link updates (YWCA/Job Junction/HRM), Google Sheet import + hourly cron, homepage Community picks strip (desktop + mobile 390), Admin sheet-import panel, dashboard 'Share your win' dialog, plus regression of /community, /events, /jobs and the dashboard cards. Backend: 26/26 pass. One iteration-16 test was stale (expected 15 listings, there are now 16) and I updated it. Frontend: every requested flow works and there were no page errors or error overlays. One security issue found in the sheet import: an admin-only SSRF.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/listings/import-sheet (_sheet_csv_url)", "issue": "SSRF (admin-only): the regex is not anchored to the host, and the '/d/e/' (publish-to-web) branch reuses the original URL. Confirmed: sheet_url 'http://127.0.0.1:8001/docs.google.com/spreadsheets/d/e/abc' made the backend fetch http://127.0.0.1:8001/.../pub?output=csv (seen in backend log). Fix: parse the URL and require scheme https and netloc == 'docs.google.com', then rebuild the URL from the parsed ID. Also set follow_redirects to only follow redirects to google hosts."},
+      {"endpoint": "_do_sheet_import / cron", "issue": "Duplicates are detected only by slug against existing listings. DELETE /api/listings/{id} is a hard delete, so a spam or rejected submission the admin deletes is imported again as pending on the next hourly run. Fix: keep a record of imported row keys (e.g. a hash of timestamp + name in settings or a separate collection) or soft-delete with status 'rejected'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Homepage Community picks", "issues": ["2 of the 5 featured picks are placeholders ('Example: North End Barber Studio', 'Example: Portrait & Grad Photographer') shown prominently on the homepage. Consider unfeaturing them now that real listings exist.", "Desktop: the 5 cards of w-56 leave empty space on the right of the container (minor)."]},
+      {"screen": "Share win card (canvas)", "issues": ["Black style: the employer line in #0055A4 on #111 has low contrast; use the accent yellow or a lighter blue.", "Footer tagline at 26px reaches almost the full 1080px width and may clip with longer text.", "A very long job title can push the headline past the white card. The description y is clamped to 700, but the headline itself is not.", "Download filename has a trailing dash (hired-library-page-student-shelver-.png). Trim dashes.", "The canvas uses 'Space Grotesk', which may not be loaded when drawing; the output looks like Arial. Await document.fonts.load before rendering."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration17_picks_import_links.py", "/app/backend/tests/test_iteration16_community_listings.py", "/app/test_reports/pytest/pytest_iter17.xml"],
+  "action_items": [
+    "Fix the SSRF in _sheet_csv_url: strictly validate host == docs.google.com over https and build the fetch URL from the parsed ID.",
+    "Stop deleted or rejected submissions from being imported again on each hourly run.",
+    "Optional: unfeature the 'Example:' placeholder listings so they don't appear in the homepage strip.",
+    "Optional polish on the share card: contrast in the black style, long-title overflow, filename trailing dash, font loading."
+  ],
+  "critical_code_review_comments": [
+    "server.py _sheet_csv_url: re.search without host anchoring, and the publish-to-web branch returns the user URL as-is (SSRF).",
+    "_do_sheet_import: one find_one per row (N+1) is fine for small sheets. Name-only slug dedupe means two different businesses with the same name collide (the second is skipped silently).",
+    "SheetImportPanel always sends save:true, so a failed attempt does not save (good). There is no UI to clear the saved sheet even though DELETE /admin/listings/import-settings exists.",
+    "server.py is 1689 lines. Consider moving listings/import into a router module."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration17_picks_import_links.py (new)", "/app/backend/tests/test_iteration16_community_listings.py (stale count 15 -> 16)"],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "None. The sheet URL was never saved; import-settings sheet_url is still null. delivered@resend.dev saved job 6aedd764dc889e8f50047e56 was set to hired and then back to 'interviewed'.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Verified: ANFGC (anfgc-halifax) is featured; 5 featured, 16 approved listings. Event feeds include ywcahalifax.com/events and jobjunction workshop-information. HRM jobs and the job feed use halifax.ca/about-halifax/employment. Import endpoints return 400s with friendly messages, 403 for non-admin and 401 for anon. Cron returns 401 without auth or with a wrong token, and 200 {accepted:true, skipped:'no sheet configured'} with the secret. Homepage strip sits between /02 Featured and /03 Spotlight; card testids use the slug, e.g. community-pick-anfgc-halifax, and link to /community/{id}. Mobile: no page overflow and the strip scrolls. Admin tab testid is admin-tab-community. The dashboard status select is native, select[data-testid=job-status-{job_id}]. If the SSRF fix lands, retest with http://127.0.0.1:8001/docs.google.com/spreadsheets/d/e/abc (save:false): it should return 400 'Paste a Google Sheets link' and make no outbound fetch."
+}

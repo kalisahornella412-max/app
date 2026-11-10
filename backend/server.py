@@ -8,6 +8,7 @@ load_dotenv(ROOT_DIR / ".env")
 import os
 import re
 import hmac
+import hashlib
 import logging
 import secrets
 import uuid
@@ -855,12 +856,16 @@ _COL_KEYS = {
 
 def _sheet_csv_url(url: str) -> str:
     url = url.strip()
-    m = re.search(r"docs\.google\.com/spreadsheets/d/(?:e/)?([A-Za-z0-9_-]+)", url)
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc.lower() != "docs.google.com":
+        raise HTTPException(400, "Paste a Google Sheets link (the Form's linked responses sheet)")
+    pub = re.match(r"^/spreadsheets/d/e/([A-Za-z0-9_-]+)", parsed.path)
+    if pub:  # 'Publish to web' link
+        return f"https://docs.google.com/spreadsheets/d/e/{pub.group(1)}/pub?output=csv"
+    m = re.match(r"^/spreadsheets/d/([A-Za-z0-9_-]+)", parsed.path)
     if not m:
         raise HTTPException(400, "Paste a Google Sheets link (the Form's linked responses sheet)")
-    if "/d/e/" in url:  # 'Publish to web' link
-        return re.sub(r"/pub.*$", "", url) + "/pub?output=csv"
-    gid = re.search(r"[#&?]gid=(\d+)", url)
+    gid = re.search(r"(?:^|[#&?])gid=(\d+)", parsed.query + "#" + parsed.fragment)
     return f"https://docs.google.com/spreadsheets/d/{m.group(1)}/export?format=csv" + (f"&gid={gid.group(1)}" if gid else "")
 
 
@@ -905,8 +910,15 @@ async def _do_sheet_import(sheet_url: str) -> dict:
     import httpx
     csv_url = _sheet_csv_url(sheet_url)
     try:
-        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=False) as client:
             r = await client.get(csv_url)
+            hops = 0
+            while r.is_redirect and hops < 3:
+                nxt = r.headers.get("location", "")
+                if not urlparse(nxt).netloc.lower().endswith(("google.com", "googleusercontent.com")):
+                    raise ValueError("redirect off google")
+                r = await client.get(nxt)
+                hops += 1
         r.raise_for_status()
         if "<html" in r.text[:500].lower():
             raise ValueError("html")
@@ -927,9 +939,11 @@ async def _do_sheet_import(sheet_url: str) -> dict:
             skipped += 1
             continue
         slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
-        if await db.listings.find_one({"slug": slug}):
+        row_key = hashlib.sha1("|".join(c.strip() for c in row[:3]).encode()).hexdigest()
+        if await db.listings.find_one({"slug": slug}) or await db.import_log.find_one({"row_key": row_key}):
             skipped += 1
             continue
+        await db.import_log.insert_one({"row_key": row_key, "slug": slug, "imported_at": now})
         try:
             ig = _normalize_instagram(get("instagram") or None)
         except HTTPException:

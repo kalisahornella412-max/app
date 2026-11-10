@@ -67,6 +67,15 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ `BackButton` (history-aware with fallback) in header of programs/jobs/events/community/listing/dashboard/resume/privacy/admin.
 - Tests: iteration_16 (100%).
 
+## Phase 1 follow-ups (2026-11-10)
+- ✅ Homepage `CommunityPicks` strip (featured listings, horizontal scroll on mobile) inserted between featured programs and spotlight jobs — no other homepage change
+- ✅ Google Form → Sheet auto-import: `POST /api/admin/listings/import-sheet` (paste docs.google.com link; strict host validation, google-only redirects; heuristic column mapping; rows → pending listings tagged `submitted`; dedupe by slug + `import_log` row hash so deleted spam isn't re-imported), `GET/DELETE /api/admin/listings/import-settings`, hourly cron `POST /api/cron/import-listings` (crons.yml). UI `SheetImportPanel` in Admin → Community. **User has not yet pasted a sheet link.**
+- ✅ Share Your Win: `ShareWinDialog` (canvas PNG card, yellow/black, download + Web Share) via "Share" button on Hired saved jobs
+- ✅ Links: YWCA events feed → ywcahalifax.com/events/, Job Junction → jobjunction.ca/workshop-information/, HRM jobs → halifax.ca/about-halifax/employment
+- ✅ Real listing added: ANFGC Halifax (All Nations Full Gospel Church, 2010 Purcells Cove Rd; featured). Example barber/photographer un-featured.
+- ✅ Hero bottom-right photo replaced with user-supplied community photo (`/brand/hero-youth.jpg`)
+- Tests: iteration_17 (100%) + SSRF/dedupe fixes verified by curl/unit run
+
 ## Security audit remediation (2026-11-06)
 - Audit verdict: CONDITIONAL PASS (4 medium) → all fixed + hardening. Cookies `SameSite=Lax`; CSRF middleware (`csrf_and_headers`): unsafe /api/* requests need allow-listed Origin/Referer (403) and JSON content-type when a body is present (415), cron exempt; CORS exact allowlist from `CORS_ORIGINS`+`FRONTEND_URL` (wildcard discarded, regex removed) — **production must set CORS_ORIGINS/FRONTEND_URL to https://halifaxyouthhub.com**; AI daily quota (`AI_DAILY_LIMIT`=40/user, `ai_usage`, admins exempt) on all 5 LLM endpoints; account deletion wipes interview_preps/interview_sessions/ai_usage; no default admin password & no startup password reset; registration non-enumerating; `/api/stats` no user count; generic scraper errors; login throttle per ip+email (5) **and** per account (20), client IP = right-most X-Forwarded-For; security headers (nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy). Tests: iteration_14/15.
 - ✅ Brand logo (user-supplied, white+yellow 'H' stacked mark) added: `frontend/public/brand/` — navbar tile `icon-512.png`, footer full stacked logo, favicons (32/180/512) + og:image in index.html

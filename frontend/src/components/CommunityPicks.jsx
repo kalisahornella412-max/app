@@ -20,7 +20,7 @@ export default function CommunityPicks() {
         </div>
         <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
           {picks.map((l) => (
-            <Link key={l.id} to={`/community/${l.id}`} data-testid={`community-pick-${l.slug}`} className="shrink-0 w-56 brutal-border brutal-shadow bg-white brutal-press flex flex-col">
+            <Link key={l.id} to={`/community/${l.id}`} data-testid={`community-pick-${l.slug}`} className="shrink-0 w-56 lg:w-auto lg:flex-1 brutal-border brutal-shadow bg-white brutal-press flex flex-col">
               <div className="aspect-[4/3] border-b-2 border-black overflow-hidden bg-[#F4F4F4]">
                 {l.image_url && <img src={l.image_url} alt={l.name} loading="lazy" className="w-full h-full object-cover" />}
               </div>

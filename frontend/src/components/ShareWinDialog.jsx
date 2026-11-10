@@ -28,6 +28,7 @@ export default function ShareWinDialog({ open, onOpenChange, job, name }) {
     if (!open || !job) return;
     let cancelled = false;
     (async () => {
+      try { await document.fonts.load("900 86px 'Space Grotesk'"); } catch {}
       const c = document.createElement("canvas"); const ctx = c.getContext("2d");
       const W = 1080, H = 1080; c.width = W; c.height = H;
       const palette = style === "yellow" ? { bg: "#FFD100", fg: "#000", accent: "#000", card: "#fff" } : { bg: "#000", fg: "#fff", accent: "#FFD100", card: "#111" };
@@ -48,22 +49,25 @@ export default function ShareWinDialog({ open, onOpenChange, job, name }) {
       ctx.fillStyle = palette.accent; ctx.fillRect(140, 240, 260, 48);
       ctx.fillStyle = style === "yellow" ? "#FFD100" : "#000"; ctx.font = "900 26px Arial, sans-serif"; ctx.fillText("★  I GOT HIRED", 160, 251);
       // headline
-      ctx.fillStyle = style === "yellow" ? "#000" : "#fff"; ctx.font = "900 86px 'Space Grotesk', Arial, sans-serif";
-      let y = wrap(ctx, job.title, 140, 320, 800, 92);
-      ctx.font = "700 42px Arial, sans-serif"; ctx.fillStyle = "#0055A4";
+      ctx.fillStyle = style === "yellow" ? "#000" : "#fff";
+      const title = job.title.length > 60 ? job.title.slice(0, 57) + "…" : job.title;
+      const fs = title.length > 36 ? 58 : title.length > 22 ? 72 : 86;
+      ctx.font = `900 ${fs}px 'Space Grotesk', Arial, sans-serif`;
+      let y = wrap(ctx, title, 140, 320, 800, fs + 6);
+      ctx.font = "700 42px Arial, sans-serif"; ctx.fillStyle = style === "yellow" ? "#0055A4" : "#FFD100";
       if (job.employer) y = wrap(ctx, `at ${job.employer}`, 140, y + 10, 800, 50);
       ctx.fillStyle = style === "yellow" ? "#333" : "#ccc"; ctx.font = "500 32px Arial, sans-serif";
       wrap(ctx, `${name ? name.split(" ")[0] + " found" : "Found"} this role through the Halifax Youth Hub job board — resume, cover letter and interview prep all in one place.`, 140, Math.min(y + 30, 700), 800, 42);
       // footer
       ctx.fillStyle = palette.fg; ctx.font = "900 34px Arial, sans-serif"; ctx.fillText(SITE, 90, 940);
-      ctx.font = "700 26px Arial, sans-serif"; ctx.fillStyle = style === "yellow" ? "#333" : "#aaa"; ctx.fillText("Programs · Jobs · Community · Resume builder for Halifax youth & newcomers", 90, 990);
+      ctx.font = "700 26px Arial, sans-serif"; ctx.fillStyle = style === "yellow" ? "#333" : "#aaa"; ctx.fillText("Programs · Jobs · Community · Resume builder for Halifax youth", 90, 990);
       if (!cancelled) setDataUrl(c.toDataURL("image/png"));
     })();
     return () => { cancelled = true; };
   }, [open, job, style, name]);
 
   function download() {
-    const a = document.createElement("a"); a.href = dataUrl; a.download = `hired-${(job.title || "win").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`; a.click();
+    const a = document.createElement("a"); a.href = dataUrl; a.download = `hired-${(job.title || "win").replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase()}.png`; a.click();
   }
   async function share() {
     try {

@@ -52,7 +52,7 @@ class TestPublic:
         r = requests.get(f"{API}/listings")
         assert r.status_code == 200
         data = r.json()
-        assert len(data) == 15, [d["slug"] for d in data]
+        assert len(data) == 16, [d["slug"] for d in data]
         for d in data:
             for k in ("id", "slug", "name", "category", "short_description", "neighbourhood", "is_featured"):
                 assert k in d
