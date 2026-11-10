@@ -66,6 +66,13 @@ export default function LandingPage() {
                 >
                   Build my resume <Sparkles size={18} strokeWidth={3} />
                 </Link>
+                <Link
+                  to="/community"
+                  data-testid="cta-explore-community"
+                  className="bg-white brutal-border brutal-shadow brutal-press inline-flex items-center gap-2 px-6 py-3 font-display font-bold uppercase tracking-wide hover:bg-[#FFD100]"
+                >
+                  Explore community <ArrowRight size={18} strokeWidth={3} />
+                </Link>
               </div>
 
               <div className="mt-10 grid grid-cols-3 gap-3 max-w-lg">

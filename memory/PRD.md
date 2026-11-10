@@ -76,6 +76,10 @@ Build a website for Halifax youth to access all youth-related programs (YouthWor
 - ✅ Hero bottom-right photo replaced with user-supplied community photo (`/brand/hero-youth.jpg`)
 - Tests: iteration_17 (100%) + SSRF/dedupe fixes verified by curl/unit run
 
+## Footer content update + Community CTA (2026-11-10)
+- ✅ Footer (`Footer.jsx`, structure/colours unchanged): new 3-paragraph description; Explore column = Programs, Jobs, Events, Local Businesses & Services (/community), Arts & Creative Communities (/community?category=…), Faith & Spiritual Communities (/community?category=…), Community Resources (**inactive, no page yet**), Resume Builder, Privacy Policy, Logo & Brand Kit; column renamed "Featured Organizations & Communities" (data-driven list); disclaimer wording updated.
+- ✅ Hero gets a third CTA "Explore community" → /community (`cta-explore-community`).
+
 ## Security audit remediation (2026-11-06)
 - Audit verdict: CONDITIONAL PASS (4 medium) → all fixed + hardening. Cookies `SameSite=Lax`; CSRF middleware (`csrf_and_headers`): unsafe /api/* requests need allow-listed Origin/Referer (403) and JSON content-type when a body is present (415), cron exempt; CORS exact allowlist from `CORS_ORIGINS`+`FRONTEND_URL` (wildcard discarded, regex removed) — **production must set CORS_ORIGINS/FRONTEND_URL to https://halifaxyouthhub.com**; AI daily quota (`AI_DAILY_LIMIT`=40/user, `ai_usage`, admins exempt) on all 5 LLM endpoints; account deletion wipes interview_preps/interview_sessions/ai_usage; no default admin password & no startup password reset; registration non-enumerating; `/api/stats` no user count; generic scraper errors; login throttle per ip+email (5) **and** per account (20), client IP = right-most X-Forwarded-For; security headers (nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy). Tests: iteration_14/15.
 - ✅ Brand logo (user-supplied, white+yellow 'H' stacked mark) added: `frontend/public/brand/` — navbar tile `icon-512.png`, footer full stacked logo, favicons (32/180/512) + og:image in index.html
