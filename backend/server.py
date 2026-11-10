@@ -24,7 +24,7 @@ from pymongo import ReturnDocument
 from urllib.parse import urlparse
 from pydantic import BaseModel, Field, EmailStr
 
-from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS
+from seed_data import PROGRAMS, JOBS, EVENTS, JOB_FEEDS, EVENT_FEEDS, LISTINGS, LISTING_CATEGORIES
 from jobbank_scraper import fetch_live_jobs
 from emailer import send_email, closing_soon_html, UndeliverableRecipient
 
@@ -128,6 +128,13 @@ async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     return user
+
+
+async def get_optional_user(request: Request) -> Optional[dict]:
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
 
 
 # ---------- Schemas ----------
@@ -670,6 +677,161 @@ async def my_saved_jobs(user: dict = Depends(get_current_user)):
     for d in docs:
         d.setdefault("status", "saved")
     return docs
+
+
+# ---------- Community Directory (listings) ----------
+_IG_RE = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+
+
+def _normalize_instagram(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    v = value.strip()
+    m = re.search(r"instagram\.com/([A-Za-z0-9._]+)", v)
+    if m:
+        v = m.group(1)
+    v = v.lstrip("@").rstrip("/")
+    if not _IG_RE.match(v):
+        raise HTTPException(400, "Instagram username can only contain letters, numbers, dots and underscores")
+    return v
+
+
+def _check_http_url(value: Optional[str], label: str) -> Optional[str]:
+    if not value:
+        return None
+    v = value.strip()
+    if not re.match(r"^https?://", v, re.I):
+        v = "https://" + v
+    if not urlparse(v).netloc:
+        raise HTTPException(400, f"{label} must be a valid URL")
+    return v
+
+
+class ListingIn(BaseModel):
+    slug: Optional[str] = None
+    name: str = Field(min_length=2, max_length=120)
+    category: str
+    short_description: str = Field(min_length=10, max_length=400)
+    description: Optional[str] = Field(default=None, max_length=3000)
+    image_url: Optional[str] = None
+    instagram: Optional[str] = None
+    website: Optional[str] = None
+    contact: Optional[str] = Field(default=None, max_length=200)
+    neighbourhood: str = "All HRM"
+    booking_url: Optional[str] = None
+    tags: List[str] = []
+    is_featured: bool = False
+    status: str = "approved"
+
+
+def _clean_listing(payload: ListingIn) -> dict:
+    if payload.category not in LISTING_CATEGORIES:
+        raise HTTPException(400, f"category must be one of: {', '.join(LISTING_CATEGORIES)}")
+    if payload.status not in ("pending", "approved"):
+        raise HTTPException(400, "status must be pending or approved")
+    doc = payload.model_dump()
+    doc["instagram"] = _normalize_instagram(payload.instagram)
+    doc["instagram_url"] = f"https://www.instagram.com/{doc['instagram']}/" if doc["instagram"] else None
+    doc["website"] = _check_http_url(payload.website, "Website")
+    doc["booking_url"] = _check_http_url(payload.booking_url, "Booking link")
+    doc["image_url"] = _check_http_url(payload.image_url, "Image URL")
+    doc["slug"] = (payload.slug or re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-"))[:80]
+    doc["tags"] = [t.strip().lower() for t in payload.tags if t.strip()][:8]
+    return doc
+
+
+def _listing_out(d: dict) -> dict:
+    out = _serialize_doc(d)
+    if out.get("instagram") and not out.get("instagram_url"):
+        out["instagram_url"] = f"https://www.instagram.com/{out['instagram']}/"
+    return out
+
+
+@api.get("/listings/categories")
+async def listing_categories():
+    return LISTING_CATEGORIES
+
+
+@api.get("/listings")
+async def list_listings(category: Optional[str] = None, q: Optional[str] = None, featured: Optional[bool] = None):
+    filt: dict = {"status": "approved"}
+    if category and category != "all":
+        filt["category"] = category
+    if featured is not None:
+        filt["is_featured"] = featured
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        filt["$or"] = [{"name": rx}, {"short_description": rx}, {"neighbourhood": rx}, {"tags": rx}, {"instagram": rx}]
+    docs = await db.listings.find(filt).sort([("is_featured", -1), ("name", 1)]).to_list(1000)
+    return [_listing_out(d) for d in docs]
+
+
+@api.get("/listings/{listing_id}")
+async def get_listing(listing_id: str, user: Optional[dict] = Depends(get_optional_user)):
+    doc = await db.listings.find_one({"_id": ObjectId(listing_id)})
+    if not doc or (doc.get("status") != "approved" and (not user or user.get("role") != "admin")):
+        raise HTTPException(404, "Listing not found")
+    return _listing_out(doc)
+
+
+@api.get("/admin/listings")
+async def admin_list_listings(_admin: dict = Depends(require_admin)):
+    docs = await db.listings.find({}).sort([("status", 1), ("is_featured", -1), ("name", 1)]).to_list(2000)
+    return [_listing_out(d) for d in docs]
+
+
+@api.post("/listings")
+async def create_listing(payload: ListingIn, _admin: dict = Depends(require_admin)):
+    doc = _clean_listing(payload)
+    if await db.listings.find_one({"slug": doc["slug"]}):
+        raise HTTPException(400, "A listing with this slug already exists")
+    now = datetime.now(timezone.utc).isoformat()
+    doc.update({"seeded": False, "created_at": now, "updated_at": now})
+    res = await db.listings.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return _listing_out(doc)
+
+
+@api.put("/listings/{listing_id}")
+async def update_listing(listing_id: str, payload: ListingIn, _admin: dict = Depends(require_admin)):
+    doc = _clean_listing(payload)
+    clash = await db.listings.find_one({"slug": doc["slug"], "_id": {"$ne": ObjectId(listing_id)}})
+    if clash:
+        raise HTTPException(400, "A listing with this slug already exists")
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    doc["seeded"] = False  # edited by admin → protected from seed cleanup
+    res = await db.listings.update_one({"_id": ObjectId(listing_id)}, {"$set": doc})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Listing not found")
+    return _listing_out(await db.listings.find_one({"_id": ObjectId(listing_id)}))
+
+
+class ListingFlagsIn(BaseModel):
+    status: Optional[str] = None
+    is_featured: Optional[bool] = None
+
+
+@api.patch("/listings/{listing_id}")
+async def patch_listing(listing_id: str, payload: ListingFlagsIn, _admin: dict = Depends(require_admin)):
+    update: dict = {"updated_at": datetime.now(timezone.utc).isoformat(), "seeded": False}
+    if payload.status is not None:
+        if payload.status not in ("pending", "approved"):
+            raise HTTPException(400, "status must be pending or approved")
+        update["status"] = payload.status
+    if payload.is_featured is not None:
+        update["is_featured"] = payload.is_featured
+    res = await db.listings.update_one({"_id": ObjectId(listing_id)}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Listing not found")
+    return _listing_out(await db.listings.find_one({"_id": ObjectId(listing_id)}))
+
+
+@api.delete("/listings/{listing_id}")
+async def delete_listing(listing_id: str, _admin: dict = Depends(require_admin)):
+    res = await db.listings.delete_one({"_id": ObjectId(listing_id)})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Listing not found")
+    return {"ok": True}
 
 
 # ---------- Resumes ----------
@@ -1264,6 +1426,17 @@ async def on_startup():
                 "$set": doc,
                 "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()},
             },
+            upsert=True,
+        )
+    # Seed community listings (upsert by slug; admin-created/edited docs are never touched)
+    for l in LISTINGS:
+        doc = {**l, "instagram_url": f"https://www.instagram.com/{l['instagram']}/" if l.get("instagram") else None, "status": "approved", "seeded": True}
+        existing_l = await db.listings.find_one({"slug": l["slug"]})
+        if existing_l and existing_l.get("seeded") is False:
+            continue
+        await db.listings.update_one(
+            {"slug": l["slug"]},
+            {"$set": doc, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
             upsert=True,
         )
     # Seed events (upsert by slug + cleanup)

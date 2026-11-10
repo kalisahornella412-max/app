@@ -22,6 +22,8 @@ import DashboardPage from "./pages/DashboardPage";
 import ResumeBuilderPage from "./pages/ResumeBuilderPage";
 import AdminPage from "./pages/AdminPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import CommunityPage from "./pages/CommunityPage";
+import ListingDetailPage from "./pages/ListingDetailPage";
 
 function App() {
   return (
@@ -46,6 +48,8 @@ function App() {
                 <Route path="/resume" element={<ResumeBuilderPage />} />
                 <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/community" element={<CommunityPage />} />
+                <Route path="/community/:id" element={<ListingDetailPage />} />
               </Routes>
             </main>
             <Footer />

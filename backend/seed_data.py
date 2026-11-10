@@ -1080,3 +1080,82 @@ EVENTS = [
         "source_checked": "2026-11-06",
     },
 ]
+
+
+# ============== COMMUNITY DIRECTORY LISTINGS (examples — edit/replace in admin) ==============
+LISTING_CATEGORIES = [
+    "Beauty & Personal Care",
+    "Photography & Creative Services",
+    "Restaurants & Food Businesses",
+    "Arts & Creative Communities",
+    "Faith & Spiritual Communities",
+]
+
+_U = "https://images.unsplash.com/"
+LISTINGS = [
+    # Beauty & Personal Care
+    {"slug": "example-north-end-barber", "name": "Example: North End Barber Studio", "category": "Beauty & Personal Care",
+     "short_description": "Example listing — fades, line-ups and beard work by appointment. Replace with a real barber or stylist in Admin → Community.",
+     "neighbourhood": "North End Halifax", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1503951914875-452162b0f3f1?w=1200&q=80", "tags": ["example", "barber"], "is_featured": True},
+    {"slug": "example-nail-studio", "name": "Example: Dartmouth Nail Studio", "category": "Beauty & Personal Care",
+     "short_description": "Example listing — gel, acrylic and nail art from a home studio; books through Instagram DMs.",
+     "neighbourhood": "Dartmouth", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1604654894610-df63bc536371?w=1200&q=80", "tags": ["example", "nails"], "is_featured": False},
+    {"slug": "example-makeup-artist", "name": "Example: Freelance Makeup Artist", "category": "Beauty & Personal Care",
+     "short_description": "Example listing — bridal, grad and event makeup; travels across HRM.",
+     "neighbourhood": "All HRM", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1487412947147-5cebf100ffc2?w=1200&q=80", "tags": ["example", "makeup"], "is_featured": False},
+    # Photography & Creative Services
+    {"slug": "example-portrait-photographer", "name": "Example: Portrait & Grad Photographer", "category": "Photography & Creative Services",
+     "short_description": "Example listing — grad, family and small-business portraits; Instagram-first portfolio.",
+     "neighbourhood": "Halifax Peninsula", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1502920917128-1aa500764cbd?w=1200&q=80", "tags": ["example", "photography"], "is_featured": True},
+    {"slug": "example-videographer", "name": "Example: Event Videographer", "category": "Photography & Creative Services",
+     "short_description": "Example listing — short-form reels, event recaps and music videos.",
+     "neighbourhood": "All HRM", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1492691527719-9d1e07e534b4?w=1200&q=80", "tags": ["example", "video"], "is_featured": False},
+    {"slug": "example-graphic-designer", "name": "Example: Logo & Graphic Designer", "category": "Photography & Creative Services",
+     "short_description": "Example listing — logos, menus and social templates for small businesses.",
+     "neighbourhood": "Remote / HRM", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1561070791-2526d30994b5?w=1200&q=80", "tags": ["example", "design"], "is_featured": False},
+    # Restaurants & Food Businesses
+    {"slug": "halifax-seaport-farmers-market", "name": "Halifax Seaport Farmers' Market", "category": "Restaurants & Food Businesses",
+     "short_description": "Weekend market with dozens of local food vendors, bakers and makers on the waterfront (1209 Marginal Rd).",
+     "neighbourhood": "Halifax Waterfront", "instagram": None, "website": "https://www.halifaxfarmersmarket.com/", "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1488459716781-31db52582fe9?w=1200&q=80", "tags": ["market", "vendors"], "is_featured": True},
+    {"slug": "example-home-baker", "name": "Example: Home Bakery & Custom Cakes", "category": "Restaurants & Food Businesses",
+     "short_description": "Example listing — custom cakes, cupcakes and cultural pastries; orders by Instagram DM.",
+     "neighbourhood": "Clayton Park", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1486427944299-d1955d23e34d?w=1200&q=80", "tags": ["example", "bakery"], "is_featured": False},
+    {"slug": "example-caterer", "name": "Example: Caribbean & African Catering", "category": "Restaurants & Food Businesses",
+     "short_description": "Example listing — platters and event catering for 10–200 guests.",
+     "neighbourhood": "Dartmouth", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1555244162-803834f70033?w=1200&q=80", "tags": ["example", "catering"], "is_featured": False},
+    # Arts & Creative Communities
+    {"slug": "nocturne-halifax", "name": "Nocturne: Art at Night", "category": "Arts & Creative Communities",
+     "short_description": "Free annual night-time art festival across Halifax and Dartmouth each October; open calls for emerging artists.",
+     "neighbourhood": "Halifax & Dartmouth", "instagram": "nocturnehalifax", "website": "https://nocturnehalifax.ca/", "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1514525253161-7a46d19cd819?w=1200&q=80", "tags": ["festival", "visual-art"], "is_featured": True},
+    {"slug": "halifax-dance", "name": "Halifax Dance", "category": "Arts & Creative Communities",
+     "short_description": "Non-profit dance school on Barrington St with classes for all ages and levels, from hip hop to ballet.",
+     "neighbourhood": "Downtown Halifax", "instagram": "halifaxdance", "website": "https://halifaxdance.ca/", "contact": None, "booking_url": "https://halifaxdance.ca/",
+     "image_url": _U + "photo-1508700115892-45ecd05ae2ad?w=1200&q=80", "tags": ["dance", "classes"], "is_featured": False},
+    {"slug": "art-gallery-of-nova-scotia", "name": "Art Gallery of Nova Scotia", "category": "Arts & Creative Communities",
+     "short_description": "Provincial art gallery on Hollis St — exhibitions, youth programs and free admission times.",
+     "neighbourhood": "Downtown Halifax", "instagram": "artgalleryns", "website": "https://www.artgalleryofnovascotia.ca/", "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1518998053901-5348d3961a04?w=1200&q=80", "tags": ["gallery", "youth-programs"], "is_featured": False},
+    # Faith & Spiritual Communities
+    {"slug": "example-community-church", "name": "Example: Community Church Youth Group", "category": "Faith & Spiritual Communities",
+     "short_description": "Example listing — Friday youth nights, mentorship and community meals. Replace with a real congregation in Admin → Community.",
+     "neighbourhood": "Spryfield", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1438032005730-c779502df39b?w=1200&q=80", "tags": ["example", "youth-group"], "is_featured": True},
+    {"slug": "example-ministry", "name": "Example: Campus & Young Adults Ministry", "category": "Faith & Spiritual Communities",
+     "short_description": "Example listing — weekly gatherings for students and young adults across Halifax campuses.",
+     "neighbourhood": "Halifax Peninsula", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1529070538774-1843cb3265df?w=1200&q=80", "tags": ["example", "young-adults"], "is_featured": False},
+    {"slug": "example-spiritual-gathering", "name": "Example: Interfaith Spiritual Gathering", "category": "Faith & Spiritual Communities",
+     "short_description": "Example listing — monthly interfaith circle open to newcomers and youth of all backgrounds.",
+     "neighbourhood": "Dartmouth", "instagram": None, "website": None, "contact": None, "booking_url": None,
+     "image_url": _U + "photo-1473177104440-ffee2f376098?w=1200&q=80", "tags": ["example", "interfaith"], "is_featured": False},
+]

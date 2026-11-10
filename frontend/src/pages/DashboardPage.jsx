@@ -8,6 +8,7 @@ import { StatusSelect, ClosingBadge, daysUntil } from "../lib/applications";
 import CoverLetterDialog from "../components/CoverLetterDialog";
 import InterviewPrepDialog from "../components/InterviewPrepDialog";
 import ProgressCard from "../components/ProgressCard";
+import BackButton from "../components/BackButton";
 
 export default function DashboardPage() {
   const { user, setUser } = useAuth();
@@ -98,6 +99,7 @@ export default function DashboardPage() {
     <div data-testid="dashboard-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#F4F4F4]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <BackButton />
           <span className="label-overline">/ Dashboard</span>
           <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">Hi, {user?.name?.split(" ")[0] || "friend"}.</h1>
           <p className="mt-3 text-black/75">Your hub: saved jobs & programs, application tracker, cover letters, resumes and RSVPs.</p>

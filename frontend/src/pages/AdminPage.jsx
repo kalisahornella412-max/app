@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Trash2, Plus } from "lucide-react";
+import CommunityAdmin from "../components/CommunityAdmin";
+import BackButton from "../components/BackButton";
 
 export default function AdminPage() {
   const [tab, setTab] = useState("programs");
@@ -19,10 +21,11 @@ export default function AdminPage() {
     <div data-testid="admin-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#FF3B30] text-white">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <BackButton />
           <span className="label-overline">/ Admin</span>
           <h1 className="font-display font-black tracking-tighter text-4xl sm:text-5xl mt-1">Manage content.</h1>
           <div className="mt-6 flex gap-2 flex-wrap">
-            {["programs", "jobs", "events"].map((t) => (
+            {["programs", "jobs", "events", "community"].map((t) => (
               <button key={t} onClick={() => setTab(t)} data-testid={`admin-tab-${t}`}
                 className={`brutal-border brutal-shadow-sm brutal-press px-4 py-2 font-display font-bold uppercase text-sm ${tab === t ? "bg-[#FFD100] text-black" : "bg-white text-black"}`}>
                 {t}
@@ -36,6 +39,7 @@ export default function AdminPage() {
         {tab === "programs" && <ProgramsAdmin items={programs} reload={reload} />}
         {tab === "jobs" && <JobsAdmin items={jobs} reload={reload} />}
         {tab === "events" && <EventsAdmin items={events} reload={reload} />}
+        {tab === "community" && <CommunityAdmin />}
       </section>
     </div>
   );

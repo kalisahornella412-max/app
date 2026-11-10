@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import { useAudience } from "../lib/audience";
 import { CalendarDays, MapPin, ExternalLink } from "lucide-react";
 import EventFeeds from "../components/EventFeeds";
+import BackButton from "../components/BackButton";
 
 export default function EventsPage() {
   const { audience } = useAudience();
@@ -16,6 +17,7 @@ export default function EventsPage() {
     <div data-testid="events-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#FFD100]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <BackButton />
           <span className="label-overline">/ Events · {audience === "immigrant" ? "Newcomers" : "Youth"}</span>
           <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">
             {audience === "immigrant" ? "Real workshops & career fairs." : "Real workshops & events."}

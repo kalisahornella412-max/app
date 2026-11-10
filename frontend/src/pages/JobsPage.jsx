@@ -6,6 +6,7 @@ import JobFeeds from "../components/JobFeeds";
 import LiveJobs from "../components/LiveJobs";
 import { useSavedJobs, SaveJobButton } from "../lib/savedJobs";
 import { ClosingBadge } from "../lib/applications";
+import BackButton from "../components/BackButton";
 
 const postedAgo = (iso) => {
   if (!iso) return null;
@@ -40,6 +41,7 @@ export default function JobsPage() {
     <div data-testid="jobs-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#0055A4] text-white">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <BackButton />
           <span className="label-overline text-[#FFD100]">/ Jobs · {audience === "immigrant" ? "Newcomers" : "Youth"}</span>
           <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">
             {audience === "immigrant" ? "Newcomer-friendly Jobs." : "Halifax Job Board."}

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
+import BackButton from "../components/BackButton";
 
 const UPDATED = "November 6, 2026";
 const CONTACT = "kalisahornella412@gmail.com";
@@ -63,6 +64,7 @@ export default function PrivacyPage() {
     <div data-testid="privacy-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#F4F4F4]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <BackButton />
           <span className="label-overline">/ Privacy</span>
           <h1 className="font-display font-black tracking-tighter text-4xl sm:text-5xl lg:text-6xl mt-2 flex items-center gap-3"><ShieldCheck size={40} strokeWidth={3} />Privacy Policy</h1>
           <p className="mt-3 text-black/75 max-w-2xl">Plain-language summary of what Halifax Youth Hub collects, why, and how you stay in control. Last updated {UPDATED}.</p>

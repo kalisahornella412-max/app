@@ -6,6 +6,7 @@ import { Sparkles, Plus, Trash2, Save, Printer, Lock, Wand2 } from "lucide-react
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import ResumeNextSteps from "../components/ResumeNextSteps";
+import BackButton from "../components/BackButton";
 
 const DRAFT_KEY = "hyh_resume_draft";
 
@@ -197,7 +198,8 @@ export default function ResumeBuilderPage() {
       <section className="border-b-2 border-black bg-[#0055A4] text-white print:hidden">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <span className="label-overline text-[#FFD100]">/ Resume Builder</span>
+            <BackButton />
+          <span className="label-overline text-[#FFD100]">/ Resume Builder</span>
             <h1 className="font-display font-black tracking-tighter text-4xl sm:text-5xl mt-1">Build it. Print it. Land it.</h1>
             <p className="mt-2 text-white/85 text-sm max-w-xl">Form-based templates with AI bullet-point suggestions powered by Claude. PDF export via your browser's print → save as PDF.</p>
           </div>

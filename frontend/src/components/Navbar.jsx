@@ -6,6 +6,7 @@ import { Menu, X, LogOut, User } from "lucide-react";
 const navItems = [
   { to: "/programs", label: "Programs" },
   { to: "/jobs", label: "Jobs" },
+  { to: "/community", label: "Community" },
   { to: "/events", label: "Events" },
   { to: "/resume", label: "Resume" },
 ];

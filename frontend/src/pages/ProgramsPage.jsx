@@ -5,6 +5,7 @@ import { Search, Bookmark, BookmarkCheck } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useAudience } from "../lib/audience";
 import { toast } from "sonner";
+import BackButton from "../components/BackButton";
 
 export default function ProgramsPage() {
   const { user } = useAuth();
@@ -56,6 +57,7 @@ export default function ProgramsPage() {
     <div data-testid="programs-page" className="bg-white">
       <section className="border-b-2 border-black bg-[#F4F4F4]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <BackButton />
           <span className="label-overline">/ Programs · {audience === "immigrant" ? "Newcomers" : "Youth"}</span>
           <h1 className="font-display font-black tracking-tighter text-5xl sm:text-6xl mt-2">Programs Directory.</h1>
           <p className="mt-3 max-w-2xl text-black/75">
